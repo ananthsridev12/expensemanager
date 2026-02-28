@@ -1,17 +1,15 @@
 ﻿deployment:
   tasks:
-    - export APP_ROOT="/home1/de2shrnx/transactions.easi7.in"
-    - export REPO_ROOT="$HOME/repositories/expensemanager"
-    - mkdir -p "$APP_ROOT"
-    - mkdir -p "$APP_ROOT/private"
-    - /bin/cp -R "$REPO_ROOT/backend/public/." "$APP_ROOT/"
-    - /bin/cp "$REPO_ROOT/backend/bootstrap.php" "$APP_ROOT/private/bootstrap.php"
-    - /bin/cp "$REPO_ROOT/backend/config.example.php" "$APP_ROOT/private/config.example.php"
-    - rm -rf "$APP_ROOT/private/src"
-    - mkdir -p "$APP_ROOT/private/src"
-    - /bin/cp -R "$REPO_ROOT/backend/src/." "$APP_ROOT/private/src/"
-    - mkdir -p "$APP_ROOT/private/sql"
-    - /bin/cp "$REPO_ROOT/backend/schema.sql" "$APP_ROOT/private/schema.sql"
-    - /bin/cp "$REPO_ROOT/backend/sql/seed_defaults.sql" "$APP_ROOT/private/sql/seed_defaults.sql"
-    - /bin/cp "$REPO_ROOT/backend/README.md" "$APP_ROOT/private/README.md"
-    - if [ ! -f "$APP_ROOT/private/config.php" ]; then /bin/cp "$APP_ROOT/private/config.example.php" "$APP_ROOT/private/config.php"; fi
+    - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in
+    - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in/private
+    - /bin/cp -R /home1/de2shrnx/repositories/expensemanager/backend/public/. /home1/de2shrnx/transactions.easi7.in/
+    - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/bootstrap.php /home1/de2shrnx/transactions.easi7.in/private/bootstrap.php
+    - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/config.example.php /home1/de2shrnx/transactions.easi7.in/private/config.example.php
+    - /bin/rm -rf /home1/de2shrnx/transactions.easi7.in/private/src
+    - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in/private/src
+    - /bin/cp -R /home1/de2shrnx/repositories/expensemanager/backend/src/. /home1/de2shrnx/transactions.easi7.in/private/src/
+    - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in/private/sql
+    - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/schema.sql /home1/de2shrnx/transactions.easi7.in/private/schema.sql
+    - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/sql/seed_defaults.sql /home1/de2shrnx/transactions.easi7.in/private/sql/seed_defaults.sql
+    - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/README.md /home1/de2shrnx/transactions.easi7.in/private/README.md
+    - if [ ! -f /home1/de2shrnx/transactions.easi7.in/private/config.php ]; then /bin/cp /home1/de2shrnx/transactions.easi7.in/private/config.example.php /home1/de2shrnx/transactions.easi7.in/private/config.php; fi
