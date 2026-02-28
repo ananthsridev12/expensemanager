@@ -1,16 +1,17 @@
-﻿deployment:
+deployment:
   tasks:
-    - export DEPLOYPATH=/home1/de2shrnx/transactions.easi7.in
-    - /bin/mkdir -p $DEPLOYPATH
-    - /bin/mkdir -p $DEPLOYPATH/private
-    - /bin/cp -R backend/public/. $DEPLOYPATH/
-    - /bin/cp backend/bootstrap.php $DEPLOYPATH/private/bootstrap.php
-    - /bin/cp backend/config.example.php $DEPLOYPATH/private/config.example.php
-    - /bin/rm -rf $DEPLOYPATH/private/src
-    - /bin/mkdir -p $DEPLOYPATH/private/src
-    - /bin/cp -R backend/src/. $DEPLOYPATH/private/src/
-    - /bin/mkdir -p $DEPLOYPATH/private/sql
-    - /bin/cp backend/schema.sql $DEPLOYPATH/private/schema.sql
-    - /bin/cp backend/sql/seed_defaults.sql $DEPLOYPATH/private/sql/seed_defaults.sql
-    - /bin/cp backend/README.md $DEPLOYPATH/private/README.md
-    - if [ ! -f $DEPLOYPATH/private/config.php ]; then /bin/cp $DEPLOYPATH/private/config.example.php $DEPLOYPATH/private/config.php; fi
+    - /bin/echo "Starting deploy for transactions.easi7.in"
+    - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in
+    - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in/private
+    - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in/private/src
+    - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in/private/sql
+    - /bin/cp -R /home1/de2shrnx/repositories/expensemanager/backend/public/. /home1/de2shrnx/transactions.easi7.in/
+    - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/bootstrap.php /home1/de2shrnx/transactions.easi7.in/private/bootstrap.php
+    - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/config.example.php /home1/de2shrnx/transactions.easi7.in/private/config.example.php
+    - /bin/rm -rf /home1/de2shrnx/transactions.easi7.in/private/src/*
+    - /bin/cp -R /home1/de2shrnx/repositories/expensemanager/backend/src/. /home1/de2shrnx/transactions.easi7.in/private/src/
+    - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/schema.sql /home1/de2shrnx/transactions.easi7.in/private/schema.sql
+    - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/sql/seed_defaults.sql /home1/de2shrnx/transactions.easi7.in/private/sql/seed_defaults.sql
+    - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/README.md /home1/de2shrnx/transactions.easi7.in/private/README.md
+    - /bin/sh -c 'if [ ! -f /home1/de2shrnx/transactions.easi7.in/private/config.php ]; then /bin/cp /home1/de2shrnx/transactions.easi7.in/private/config.example.php /home1/de2shrnx/transactions.easi7.in/private/config.php; fi'
+    - /usr/bin/touch /home1/de2shrnx/transactions.easi7.in/.deploy_success
