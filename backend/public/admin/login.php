@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require __DIR__ . '/_bootstrap.php';
 
 if (admin_user()) {
