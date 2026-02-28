@@ -1,44 +1,51 @@
-﻿# Expense Manager Backend (PHP + MySQL)
+# Expense Manager Backend (API Only)
 
 This backend is shared-hosting friendly and provides:
 - MySQL schema for double-entry accounting
 - REST APIs for Flutter app
-- Admin web panel for manual operations
+- Deterministic transaction posting engine (income/expense/transfer/cards/loans/EMI/investments)
 
 ## 1) Configure
-1. Copy `backend/config.example.php` to `backend/config.php`.
-2. Update DB credentials and `app.api_key`.
-3. Ensure PHP 8.0+ and MySQL 8+.
+1. On server, edit `private/config.php`.
+2. Set DB credentials and `app.api_key`.
+3. Ensure PHP 8.1+ and MySQL 8+.
 
 ## 2) Create Database
-1. Create database `expense_manager` (or your chosen name).
+1. Create database.
 2. Import `backend/schema.sql`.
 3. Optional: import `backend/sql/seed_defaults.sql` (edit `user_id` first).
 
 ## 3) Deploy on Shared Hosting
-- Place repository contents in your hosting file manager.
-- Set web root to `backend/public` if possible.
-- If web root cannot be changed, keep files as-is and access:
-  - API: `/backend/public/index.php/api/...`
-  - Admin: `/backend/public/admin/login.php`
-- For cPanel Git deployment, `.cpanel.yml` is configured for `transactions.easi7.in` at `/home1/de2shrnx/transactions.easi7.in`.
-- In cPanel Git Version Control, set the repository path as `$HOME/repositories/expensemanager` or update `REPO_ROOT` in `.cpanel.yml`.
+- cPanel Git deployment uses `.cpanel.yml`.
+- Target path: `/home1/de2shrnx/transactions.easi7.in`.
+- Public API root after deploy: `https://transactions.easi7.in/api/...`
 
-## 4) Create Admin User
-- Open `/admin/setup.php` once and create user.
-- Then delete or block access to `setup.php`.
+## 4) API Security
+- Include header: `X-Api-Key: <your_api_key>`
 
-## 5) API Security
-- Include header `X-Api-Key: <your_api_key>` in every API request.
-
-## API Endpoints
+## 5) Core Endpoints
 - `GET /api/health`
+- `GET /api/account-types`
 - `GET /api/accounts?user_id=1`
 - `POST /api/accounts/create`
+- `POST /api/accounts/update`
 - `GET /api/categories?user_id=1`
 - `POST /api/categories/create`
-- `GET /api/transactions?user_id=1&limit=30`
+- `POST /api/categories/update`
+- `GET /api/credit-cards?user_id=1`
+- `POST /api/credit-cards/create`
+- `GET /api/loans?user_id=1`
+- `POST /api/loans/create`
+- `GET /api/investments?user_id=1`
+- `POST /api/investments/create`
+- `GET /api/emis?user_id=1&status=PENDING`
+- `POST /api/emis/create`
+- `POST /api/emis/mark-paid`
+- `GET /api/transactions?user_id=1&limit=50`
+- `GET /api/transactions/view?user_id=1&id=<transaction_id>`
 - `POST /api/transactions/create`
+- `GET /api/reports/monthly?user_id=1&year=2026&month=2`
+- `GET /api/dashboard/summary?user_id=1`
 
 ## Sample: Create Card EMI Payment
 `POST /api/transactions/create`
@@ -74,6 +81,6 @@ This backend is shared-hosting friendly and provides:
 - `investment_buy`
 - `investment_income`
 - `investment_redeem`
-- `adjustment` (manual entries)
+- `adjustment`
 
 For posting rules, see `docs/posting-templates.md`.

@@ -5,6 +5,7 @@ deployment:
     - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in/private
     - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in/private/src
     - /bin/mkdir -p /home1/de2shrnx/transactions.easi7.in/private/sql
+    - /bin/rm -rf /home1/de2shrnx/transactions.easi7.in/admin
     - /bin/cp -R /home1/de2shrnx/repositories/expensemanager/backend/public/. /home1/de2shrnx/transactions.easi7.in/
     - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/bootstrap.php /home1/de2shrnx/transactions.easi7.in/private/bootstrap.php
     - /bin/cp /home1/de2shrnx/repositories/expensemanager/backend/config.example.php /home1/de2shrnx/transactions.easi7.in/private/config.example.php
