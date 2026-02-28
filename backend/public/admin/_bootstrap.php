@@ -6,7 +6,24 @@ use App\Database;
 use App\Services\AuthService;
 use App\Services\PostingService;
 
-require dirname(__DIR__, 2) . '/bootstrap.php';
+$bootstrapCandidates = [
+    dirname(__DIR__, 2) . '/bootstrap.php',
+    dirname(__DIR__) . '/private/bootstrap.php',
+    dirname(__DIR__, 2) . '/private/bootstrap.php',
+];
+
+$bootstrapLoaded = false;
+foreach ($bootstrapCandidates as $bootstrapPath) {
+    if (file_exists($bootstrapPath)) {
+        require $bootstrapPath;
+        $bootstrapLoaded = true;
+        break;
+    }
+}
+
+if (!$bootstrapLoaded) {
+    throw new RuntimeException('Unable to locate bootstrap.php');
+}
 
 session_name($config['app']['session_name'] ?? 'expense_admin');
 session_start();

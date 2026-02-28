@@ -1,0 +1,17 @@
+﻿deployment:
+  tasks:
+    - export APP_ROOT="/home1/de2shrnx/transactions.easi7.in"
+    - export REPO_ROOT="$HOME/repositories/expensemanager"
+    - mkdir -p "$APP_ROOT"
+    - mkdir -p "$APP_ROOT/private"
+    - /bin/cp -R "$REPO_ROOT/backend/public/." "$APP_ROOT/"
+    - /bin/cp "$REPO_ROOT/backend/bootstrap.php" "$APP_ROOT/private/bootstrap.php"
+    - /bin/cp "$REPO_ROOT/backend/config.example.php" "$APP_ROOT/private/config.example.php"
+    - rm -rf "$APP_ROOT/private/src"
+    - mkdir -p "$APP_ROOT/private/src"
+    - /bin/cp -R "$REPO_ROOT/backend/src/." "$APP_ROOT/private/src/"
+    - mkdir -p "$APP_ROOT/private/sql"
+    - /bin/cp "$REPO_ROOT/backend/schema.sql" "$APP_ROOT/private/schema.sql"
+    - /bin/cp "$REPO_ROOT/backend/sql/seed_defaults.sql" "$APP_ROOT/private/sql/seed_defaults.sql"
+    - /bin/cp "$REPO_ROOT/backend/README.md" "$APP_ROOT/private/README.md"
+    - if [ ! -f "$APP_ROOT/private/config.php" ]; then /bin/cp "$APP_ROOT/private/config.example.php" "$APP_ROOT/private/config.php"; fi

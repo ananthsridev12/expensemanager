@@ -21,6 +21,8 @@ This backend is shared-hosting friendly and provides:
 - If web root cannot be changed, keep files as-is and access:
   - API: `/backend/public/index.php/api/...`
   - Admin: `/backend/public/admin/login.php`
+- For cPanel Git deployment, `.cpanel.yml` is configured for `transactions.easi7.in` at `/home1/de2shrnx/transactions.easi7.in`.
+- In cPanel Git Version Control, set the repository path as `$HOME/repositories/expensemanager` or update `REPO_ROOT` in `.cpanel.yml`.
 
 ## 4) Create Admin User
 - Open `/admin/setup.php` once and create user.

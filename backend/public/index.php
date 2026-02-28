@@ -6,7 +6,24 @@ use App\Database;
 use App\Http\JsonResponse;
 use App\Services\PostingService;
 
-require dirname(__DIR__) . '/bootstrap.php';
+$bootstrapCandidates = [
+    dirname(__DIR__) . '/bootstrap.php',
+    __DIR__ . '/private/bootstrap.php',
+    dirname(__DIR__) . '/private/bootstrap.php',
+];
+
+$bootstrapLoaded = false;
+foreach ($bootstrapCandidates as $bootstrapPath) {
+    if (file_exists($bootstrapPath)) {
+        require $bootstrapPath;
+        $bootstrapLoaded = true;
+        break;
+    }
+}
+
+if (!$bootstrapLoaded) {
+    throw new RuntimeException('Unable to locate bootstrap.php');
+}
 
 $pdo = Database::connection($config);
 $posting = new PostingService($pdo);
