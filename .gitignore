@@ -1,1 +1,8 @@
-﻿backend/config.php
+backend/config.php
+frontend/lib/config/api_config.dart
+frontend/build/
+frontend/.dart_tool/
+frontend/.idea/
+frontend/*.iml
+frontend/.metadata
+.claude/
