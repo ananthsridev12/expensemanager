@@ -1,0 +1,19 @@
+body {
+    font-family: "Segoe UI", sans-serif;
+    margin: 0;
+    background-color: #f7fafc;
+    color: #1a202c;
+}
+
+main {
+    padding: 2rem;
+}
+
+.module-placeholder {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    padding: 1.25rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.05);
+    margin-top: 1rem;
+}
