@@ -17,7 +17,7 @@ include __DIR__ . '/../partials/nav.php';
         <?php foreach (['income', 'expense', 'transfer'] as $type): ?>
             <article class="card">
                 <h3><?= ucfirst($type) ?></h3>
-                <p>? <?= number_format($totalsByType[$type] ?? 0.00, 2) ?></p>
+                <p><?= formatCurrency($totalsByType[$type] ?? 0.00) ?></p>
                 <small>Ledger total</small>
             </article>
         <?php endforeach; ?>
@@ -35,7 +35,7 @@ include __DIR__ . '/../partials/nav.php';
                 Account
                 <select name="account_id" required>
                     <?php foreach ($accounts as $account): ?>
-                        <option value="<?= $account['id'] ?>"><?= htmlspecialchars($account['bank_name'] . ' ? ' . $account['account_name']) ?></option>
+                        <option value="<?= $account['id'] ?>"><?= htmlspecialchars($account['bank_name'] . ' — ' . $account['account_name']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
@@ -66,7 +66,7 @@ include __DIR__ . '/../partials/nav.php';
                     <option value="">None</option>
                     <?php foreach ($categories as $category): ?>
                         <?php foreach ($category['subcategories'] as $sub): ?>
-                            <option value="<?= $sub['id'] ?>"><?= htmlspecialchars($category['name'] . ' ? ' . $sub['name']) ?></option>
+                            <option value="<?= $sub['id'] ?>"><?= htmlspecialchars($category['name'] . ' — ' . $sub['name']) ?></option>
                         <?php endforeach; ?>
                     <?php endforeach; ?>
                 </select>
@@ -108,11 +108,11 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($txn['transaction_date']) ?></td>
                                 <td><?= htmlspecialchars(ucfirst($txn['transaction_type'])) ?></td>
-                                <td>? <?= number_format((float) $txn['amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $txn['amount']) ?></td>
                                 <td>
                                     <?= htmlspecialchars($txn['category_name'] ?? 'Uncategorized') ?>
                                     <?php if (!empty($txn['subcategory_name'])): ?>
-                                        <small class="muted">? <?= htmlspecialchars($txn['subcategory_name']) ?></small>
+                                        <small class="muted">→ <?= htmlspecialchars($txn['subcategory_name']) ?></small>
                                     <?php endif; ?>
                                 </td>
                                 <td><?= htmlspecialchars($txn['notes'] ?? '') ?></td>

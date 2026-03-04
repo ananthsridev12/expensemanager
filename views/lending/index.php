@@ -18,7 +18,7 @@ include __DIR__ . '/../partials/nav.php';
         </article>
         <article class="card">
             <h3>Outstanding</h3>
-            <p>? <?= number_format($summary['outstanding'], 2) ?></p>
+            <p><?= formatCurrency($summary['outstanding']) ?></p>
         </article>
     </section>
 
@@ -109,9 +109,9 @@ include __DIR__ . '/../partials/nav.php';
                                     <strong><?= htmlspecialchars($record['contact_name']) ?></strong><br>
                                     <small><?= htmlspecialchars($record['mobile'] ?? '') ?></small>
                                 </td>
-                                <td>? <?= number_format((float) $record['principal_amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $record['principal_amount']) ?></td>
                                 <td><?= number_format((float) $record['interest_rate'], 2) ?>%</td>
-                                <td>? <?= number_format((float) $record['outstanding_amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $record['outstanding_amount']) ?></td>
                                 <td><?= htmlspecialchars($record['due_date'] ?? '?') ?></td>
                             </tr>
                         <?php endforeach; ?>

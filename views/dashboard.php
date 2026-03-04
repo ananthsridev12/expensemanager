@@ -16,7 +16,7 @@ include __DIR__ . '/../partials/nav.php';
     <section class="summary-cards">
         <article class="card">
             <h3>Bank balance</h3>
-            <p>? <?= number_format($summary['accounts']['total_balance'], 2) ?></p>
+            <p><?= formatCurrency($summary['accounts']['total_balance']) ?></p>
             <small><?= $summary['accounts']['count'] ?> accounts</small>
         </article>
         <article class="card">
@@ -36,17 +36,17 @@ include __DIR__ . '/../partials/nav.php';
         </article>
         <article class="card">
             <h3>Loans</h3>
-            <p>? <?= number_format($summary['loans']['principal'], 2) ?></p>
+            <p><?= formatCurrency($summary['loans']['principal']) ?></p>
             <small><?= $summary['loans']['count'] ?> loans tracked</small>
         </article>
         <article class="card">
             <h3>Credit cards</h3>
-            <p>? <?= number_format($summary['credit_cards']['total_limit'], 2) ?> limit</p>
-            <small>Outstanding ? <?= number_format($summary['credit_cards']['total_outstanding'], 2) ?></small>
+            <p><?= formatCurrency($summary['credit_cards']['total_limit']) ?> limit</p>
+            <small>Outstanding <?= formatCurrency($summary['credit_cards']['total_outstanding']) ?></small>
         </article>
         <article class="card">
             <h3>Lending</h3>
-            <p>? <?= number_format($summary['lending']['outstanding'], 2) ?></p>
+            <p><?= formatCurrency($summary['lending']['outstanding']) ?></p>
             <small><?= $summary['lending']['count'] ?> records</small>
         </article>
         <article class="card">
@@ -80,7 +80,7 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($txn['transaction_date']) ?></td>
                                 <td><?= htmlspecialchars(ucfirst($txn['transaction_type'])) ?></td>
-                                <td>? <?= number_format((float) $txn['amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $txn['amount']) ?></td>
                                 <td>
                                     <?= htmlspecialchars($txn['category_name'] ?? 'Uncategorized') ?>
                                     <?php if (!empty($txn['subcategory_name'])): ?>
@@ -117,7 +117,7 @@ include __DIR__ . '/../partials/nav.php';
                                 <td><?= htmlspecialchars($reminder['name']) ?></td>
                                 <td><?= htmlspecialchars($reminder['next_due_date']) ?></td>
                                 <td><?= htmlspecialchars($reminder['frequency']) ?></td>
-                                <td>? <?= number_format((float) $reminder['amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $reminder['amount']) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -146,8 +146,8 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($emi['loan_name']) ?></td>
                                 <td><?= htmlspecialchars($emi['emi_date']) ?></td>
-                                <td>? <?= number_format((float) $emi['principal_component'], 2) ?></td>
-                                <td>? <?= number_format((float) $emi['interest_component'], 2) ?></td>
+                                <td><?= formatCurrency((float) $emi['principal_component']) ?></td>
+                                <td><?= formatCurrency((float) $emi['interest_component']) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

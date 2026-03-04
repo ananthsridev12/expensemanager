@@ -18,11 +18,11 @@ include __DIR__ . '/../partials/nav.php';
         </article>
         <article class="card">
             <h3>Total limit</h3>
-            <p>? <?= number_format($summary['total_limit'], 2) ?></p>
+            <p><?= formatCurrency($summary['total_limit']) ?></p>
         </article>
         <article class="card">
             <h3>Outstanding</h3>
-            <p>? <?= number_format($summary['total_outstanding'], 2) ?></p>
+            <p><?= formatCurrency($summary['total_outstanding']) ?></p>
         </article>
     </section>
 
@@ -79,8 +79,8 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($card['bank_name']) ?></td>
                                 <td><?= htmlspecialchars($card['card_name']) ?></td>
-                                <td>? <?= number_format((float) $card['credit_limit'], 2) ?></td>
-                                <td>? <?= number_format((float) $card['outstanding_balance'], 2) ?></td>
+                                <td><?= formatCurrency((float) $card['credit_limit']) ?></td>
+                                <td><?= formatCurrency((float) $card['outstanding_balance']) ?></td>
                                 <td><?= htmlspecialchars($card['billing_date']) ?> / <?= htmlspecialchars($card['due_date']) ?></td>
                             </tr>
                         <?php endforeach; ?>

@@ -18,7 +18,7 @@ include __DIR__ . '/../partials/nav.php';
         </article>
         <article class="card">
             <h3>Ledger balance</h3>
-            <p>? <?= number_format($accountSummary['total_balance'], 2) ?></p>
+            <p><?= formatCurrency($accountSummary['total_balance']) ?></p>
         </article>
     </section>
 
@@ -70,7 +70,7 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($account['bank_name']) ?></td>
                                 <td><?= htmlspecialchars($account['account_name']) ?></td>
-                                <td>? <?= number_format($account['balance'], 2) ?></td>
+                                <td><?= formatCurrency($account['balance']) ?></td>
                                 <td><?= htmlspecialchars($account['created_at']) ?></td>
                             </tr>
                         <?php endforeach; ?>

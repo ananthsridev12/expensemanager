@@ -145,7 +145,7 @@ include __DIR__ . '/../partials/nav.php';
                                 <td><?= htmlspecialchars($txn['transaction_date']) ?></td>
                                 <td><?= htmlspecialchars($txn['investment_name'] ?? '?') ?></td>
                                 <td><?= htmlspecialchars(ucfirst($txn['transaction_type'])) ?></td>
-                                <td>? <?= number_format((float) $txn['amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $txn['amount']) ?></td>
                                 <td><?= htmlspecialchars($txn['account_name'] ?? '?') ?></td>
                             </tr>
                         <?php endforeach; ?>

@@ -19,7 +19,7 @@ include __DIR__ . '/../partials/nav.php';
         </article>
         <article class="card">
             <h3>Total principal</h3>
-            <p>? <?= number_format($summary['total_principal'], 2) ?></p>
+            <p><?= formatCurrency($summary['total_principal']) ?></p>
         </article>
     </section>
 
@@ -89,8 +89,8 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($loan['loan_name']) ?></td>
                                 <td><?= htmlspecialchars(ucfirst($loan['loan_type'])) ?></td>
-                                <td>? <?= number_format((float) $loan['principal_amount'], 2) ?></td>
-                                <td>? <?= number_format((float) $loan['emi_amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $loan['principal_amount']) ?></td>
+                                <td><?= formatCurrency((float) $loan['emi_amount']) ?></td>
                                 <td><?= htmlspecialchars($loan['start_date']) ?></td>
                             </tr>
                         <?php endforeach; ?>
@@ -120,8 +120,8 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($emi['loan_name']) ?></td>
                                 <td><?= htmlspecialchars($emi['emi_date']) ?></td>
-                                <td>? <?= number_format((float) $emi['principal_component'], 2) ?></td>
-                                <td>? <?= number_format((float) $emi['interest_component'], 2) ?></td>
+                                <td><?= formatCurrency((float) $emi['principal_component']) ?></td>
+                                <td><?= formatCurrency((float) $emi['interest_component']) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

@@ -182,8 +182,8 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($contract['property_name']) ?></td>
                                 <td><?= htmlspecialchars($contract['tenant_name']) ?></td>
-                                <td>? <?= number_format((float) $contract['rent_amount'], 2) ?></td>
-                                <td><?= htmlspecialchars($contract['start_date']) ?> ? <?= htmlspecialchars($contract['end_date'] ?? 'ongoing') ?></td>
+                                <td><?= formatCurrency((float) $contract['rent_amount']) ?></td>
+                                <td><?= htmlspecialchars($contract['start_date']) ?> → <?= htmlspecialchars($contract['end_date'] ?? 'ongoing') ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -213,7 +213,7 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($txn['tenant_name'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($txn['property_name'] ?? '') ?></td>
-                                <td>? <?= number_format((float) $txn['paid_amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $txn['paid_amount']) ?></td>
                                 <td><?= htmlspecialchars(ucfirst($txn['payment_status'])) ?></td>
                                 <td><?= htmlspecialchars($txn['due_date']) ?></td>
                             </tr>

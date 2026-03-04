@@ -93,7 +93,7 @@ include __DIR__ . '/../partials/nav.php';
                         <?php foreach ($schedules as $schedule): ?>
                             <tr>
                                 <td><?= htmlspecialchars($schedule['investment_name'] ?? '?') ?></td>
-                                <td>? <?= number_format((float) $schedule['sip_amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $schedule['sip_amount']) ?></td>
                                 <td><?= htmlspecialchars(ucfirst($schedule['frequency'])) ?></td>
                                 <td><?= htmlspecialchars($schedule['next_run_date'] ?? '?') ?></td>
                                 <td><?= htmlspecialchars(ucfirst($schedule['status'])) ?></td>
@@ -124,7 +124,7 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($schedule['investment_name'] ?? '?') ?></td>
                                 <td><?= htmlspecialchars($schedule['next_run_date']) ?></td>
-                                <td>? <?= number_format((float) $schedule['sip_amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $schedule['sip_amount']) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

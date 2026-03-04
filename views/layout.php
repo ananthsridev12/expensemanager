@@ -1,3 +1,12 @@
+<?php
+if (!function_exists('formatCurrency')) {
+    function formatCurrency($value): string
+    {
+        return '₹ ' . number_format((float) $value, 2);
+    }
+}
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

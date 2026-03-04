@@ -90,7 +90,7 @@ include __DIR__ . '/../partials/nav.php';
                                 <td><?= htmlspecialchars($reminder['name']) ?></td>
                                 <td><?= htmlspecialchars($reminder['next_due_date']) ?></td>
                                 <td><?= htmlspecialchars($reminder['frequency']) ?></td>
-                                <td>? <?= number_format((float) $reminder['amount'], 2) ?></td>
+                                <td><?= formatCurrency((float) $reminder['amount']) ?></td>
                                 <td><?= htmlspecialchars(ucfirst($reminder['status'])) ?></td>
                             </tr>
                         <?php endforeach; ?>
