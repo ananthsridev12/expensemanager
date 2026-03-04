@@ -1,7 +1,6 @@
 ---
 deployment:
   tasks:
-    - export USERNAME=REPLACE_WITH_C_PANEL_USERNAME  # Set this to your cPanel user before first deployment
-    - export DEPLOYPATH=/home/$USERNAME/public_html/transactions.easi7.in/
+    - export DEPLOYPATH=/home1/de2shrnx/transactions.easi7.in/
     - /bin/mkdir -p "$DEPLOYPATH"
     - /usr/bin/rsync -a --delete --exclude='.git/' --exclude='.cpanel.yml' --exclude='.gitignore' ./ "$DEPLOYPATH"
