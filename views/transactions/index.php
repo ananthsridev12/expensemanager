@@ -32,7 +32,7 @@ include __DIR__ . '/../partials/nav.php';
                 <input type="date" name="transaction_date" value="<?= date('Y-m-d') ?>" required>
             </label>
             <label>
-                Account
+                From account
                 <select name="account_id" required>
                     <?php foreach ($accounts as $account): ?>
                         <option value="<?= $account['id'] ?>"><?= htmlspecialchars($account['bank_name'] . ' — ' . $account['account_name']) ?></option>
@@ -41,7 +41,7 @@ include __DIR__ . '/../partials/nav.php';
             </label>
             <label>
                 Transaction type
-                <select name="transaction_type">
+                <select name="transaction_type" id="transaction-type">
                     <option value="income">Income</option>
                     <option value="expense" selected>Expense</option>
                     <option value="transfer">Transfer</option>
@@ -53,7 +53,7 @@ include __DIR__ . '/../partials/nav.php';
             </label>
             <label>
                 Category
-                <select name="category_id">
+                <select name="category_id" id="category-select">
                     <option value="">Uncategorized</option>
                     <?php foreach ($categories as $category): ?>
                         <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?> (<?= $category['type'] ?>)</option>
@@ -62,15 +62,26 @@ include __DIR__ . '/../partials/nav.php';
             </label>
             <label>
                 Subcategory
-                <select name="subcategory_id">
+                <select name="subcategory_id" id="subcategory-select">
                     <option value="">None</option>
                     <?php foreach ($categories as $category): ?>
                         <?php foreach ($category['subcategories'] as $sub): ?>
-                            <option value="<?= $sub['id'] ?>"><?= htmlspecialchars($category['name'] . ' — ' . $sub['name']) ?></option>
+                            <option value="<?= $sub['id'] ?>" data-category="<?= $category['id'] ?>"><?= htmlspecialchars($category['name'] . ' — ' . $sub['name']) ?></option>
                         <?php endforeach; ?>
                     <?php endforeach; ?>
                 </select>
             </label>
+            <div class="module-form" id="transfer-options" style="display: none;">
+                <label>
+                    To account
+                    <select name="transfer_to_account_id">
+                        <option value="">Select target account</option>
+                        <?php foreach ($accounts as $account): ?>
+                            <option value="<?= $account['id'] ?>"><?= htmlspecialchars($account['bank_name'] . ' — ' . $account['account_name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+            </div>
             <label>
                 Reference type
                 <input type="text" name="reference_type">
@@ -123,4 +134,44 @@ include __DIR__ . '/../partials/nav.php';
             </div>
         <?php endif; ?>
     </section>
+
+    <script>
+        (function () {
+            const typeSelect = document.getElementById('transaction-type');
+            const transferPanel = document.getElementById('transfer-options');
+            const categorySelect = document.getElementById('category-select');
+            const subcategorySelect = document.getElementById('subcategory-select');
+
+            const storedOptions = Array.from(subcategorySelect.querySelectorAll('option[data-category]')).map(option => ({
+                value: option.value,
+                label: option.innerHTML,
+                category: option.dataset.category,
+            }));
+
+            function toggleTransferFields() {
+                transferPanel.style.display = typeSelect.value === 'transfer' ? 'grid' : 'none';
+            }
+
+            function refreshSubcategories() {
+                const selectedCategory = categorySelect.value;
+                subcategorySelect.innerHTML = '<option value="">None</option>';
+
+                storedOptions.forEach(item => {
+                    if (!selectedCategory || item.category === selectedCategory) {
+                        const option = document.createElement('option');
+                        option.value = item.value;
+                        option.innerHTML = item.label;
+                        option.dataset.category = item.category;
+                        subcategorySelect.appendChild(option);
+                    }
+                });
+            }
+
+            typeSelect.addEventListener('change', toggleTransferFields);
+            categorySelect.addEventListener('change', refreshSubcategories);
+
+            toggleTransferFields();
+            refreshSubcategories();
+        })();
+    </script>
 </main>
