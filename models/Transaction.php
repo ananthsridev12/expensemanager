@@ -17,12 +17,14 @@ class Transaction extends BaseModel
     {
         $sql = <<<SQL
 SELECT
-    t.*, 
+    t.*,
+    a.bank_name,
     c.name AS category_name,
     sc.name AS subcategory_name
 FROM transactions t
 LEFT JOIN categories c ON c.id = t.category_id
 LEFT JOIN subcategories sc ON sc.id = t.subcategory_id
+LEFT JOIN accounts a ON a.id = t.account_id
 ORDER BY t.transaction_date DESC, t.created_at DESC
 LIMIT :limit
 SQL;

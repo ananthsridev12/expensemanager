@@ -108,6 +108,7 @@ include __DIR__ . '/../partials/nav.php';
                     <thead>
                         <tr>
                             <th>Date</th>
+                            <th>Bank</th>
                             <th>Type</th>
                             <th>Amount</th>
                             <th>Category</th>
@@ -118,6 +119,7 @@ include __DIR__ . '/../partials/nav.php';
                         <?php foreach ($recentTransactions as $txn): ?>
                             <tr>
                                 <td><?= htmlspecialchars($txn['transaction_date']) ?></td>
+                                <td><?= htmlspecialchars($txn['bank_name'] ?? '—') ?></td>
                                 <td><?= htmlspecialchars(ucfirst($txn['transaction_type'])) ?></td>
                                 <td><?= formatCurrency((float) $txn['amount']) ?></td>
                                 <td>
