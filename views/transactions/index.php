@@ -35,7 +35,12 @@ include __DIR__ . '/../partials/nav.php';
                 From account
                 <select name="account_id" required>
                     <?php foreach ($accounts as $account): ?>
-                        <option value="<?= $account['id'] ?>"><?= htmlspecialchars($account['bank_name'] . ' — ' . $account['account_name']) ?></option>
+                        <?php $label = ($account['account_type'] ?? 'bank') === 'credit_card'
+                            ? 'Card: ' . $account['bank_name'] . ' — ' . $account['account_name']
+                            : $account['bank_name'] . ' — ' . $account['account_name']; ?>
+                        <option value="<?= $account['id'] ?>" data-type="<?= htmlspecialchars($account['account_type'] ?? 'bank') ?>">
+                            <?= htmlspecialchars($label) ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </label>

@@ -53,8 +53,12 @@ SQL;
 
     public function getList(): array
     {
-        $stmt = $this->db->query('SELECT id, bank_name, account_name FROM accounts ORDER BY created_at DESC');
+        $stmt = $this->db->query('SELECT id, bank_name, account_name, "bank" AS account_type FROM accounts ORDER BY created_at DESC');
+        $accounts = $stmt->fetchAll();
 
-        return $stmt->fetchAll();
+        $cardStmt = $this->db->query('SELECT id, bank_name, card_name AS account_name, "credit_card" AS account_type FROM credit_cards ORDER BY created_at DESC');
+        $cards = $cardStmt->fetchAll();
+
+        return array_merge($accounts, $cards);
     }
 }
