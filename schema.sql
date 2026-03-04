@@ -1,8 +1,8 @@
 -- Personal Finance Manager schema generated from the technical specification.
 -- Run: mysql -u root -p finance_manager < schema.sql
 
-CREATE DATABASE IF NOT EXISTS finance_manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE finance_manager;
+CREATE DATABASE IF NOT EXISTS de2shrnx_expensemanager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE de2shrnx_expensemanager;
 
 -- Accounts represent bank or wallet ledgers; balances are computed from transactions.
 CREATE TABLE accounts (
