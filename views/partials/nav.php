@@ -1,5 +1,6 @@
 <nav class="main-nav">
     <?php $module = $activeModule ?? 'dashboard'; ?>
+    <span class="brand">Easi7 Finance</span>
     <a href="?module=dashboard" class="<?= $module === 'dashboard' ? 'is-active' : '' ?>">Dashboard</a>
     <a href="?module=accounts" class="<?= $module === 'accounts' ? 'is-active' : '' ?>">Accounts</a>
     <a href="?module=categories" class="<?= $module === 'categories' ? 'is-active' : '' ?>">Categories</a>

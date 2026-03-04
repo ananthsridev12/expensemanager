@@ -25,8 +25,9 @@ class AccountController extends BaseController
         $accounts = $this->accountModel->getAllWithBalances();
         $summary = $this->accountModel->getSummary();
 
-        ob_start();
-        include __DIR__ . '/../views/accounts/index.php';
-        return ob_get_clean();
+        return $this->render('accounts/index.php', [
+            'accounts' => $accounts,
+            'summary' => $summary,
+        ]);
     }
 }

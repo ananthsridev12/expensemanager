@@ -25,8 +25,9 @@ class CreditCardController extends BaseController
         $cards = $this->creditCardModel->getAll();
         $summary = $this->creditCardModel->getSummary();
 
-        ob_start();
-        include __DIR__ . '/../views/credit_cards/index.php';
-        return ob_get_clean();
+        return $this->render('credit_cards/index.php', [
+            'cards' => $cards,
+            'summary' => $summary,
+        ]);
     }
 }

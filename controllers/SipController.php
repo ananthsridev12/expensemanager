@@ -33,8 +33,11 @@ class SipController extends BaseController
         $investments = $this->investmentModel->getAll();
         $accounts = $this->accountModel->getList();
 
-        ob_start();
-        include __DIR__ . '/../views/sip/index.php';
-        return ob_get_clean();
+        return $this->render('sip/index.php', [
+            'schedules' => $schedules,
+            'upcoming' => $upcoming,
+            'investments' => $investments,
+            'accounts' => $accounts,
+        ]);
     }
 }

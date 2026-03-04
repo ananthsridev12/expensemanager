@@ -61,8 +61,11 @@ class DashboardController extends BaseController
         $upcomingReminders = $this->reminderModel->getUpcoming(3);
         $upcomingEmis = $this->loanModel->getUpcomingEmis(5);
 
-        ob_start();
-        include __DIR__ . '/../views/dashboard.php';
-        return ob_get_clean();
+        return $this->render('dashboard.php', [
+            'summary' => $summary,
+            'recentTransactions' => $recentTransactions,
+            'upcomingReminders' => $upcomingReminders,
+            'upcomingEmis' => $upcomingEmis,
+        ]);
     }
 }

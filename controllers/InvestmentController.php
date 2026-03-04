@@ -37,8 +37,11 @@ class InvestmentController extends BaseController
         $accounts = $this->accountModel->getList();
         $summary = $this->investmentModel->getSummary();
 
-        ob_start();
-        include __DIR__ . '/../views/investments/index.php';
-        return ob_get_clean();
+        return $this->render('investments/index.php', [
+            'investments' => $investments,
+            'transactions' => $transactions,
+            'accounts' => $accounts,
+            'summary' => $summary,
+        ]);
     }
 }

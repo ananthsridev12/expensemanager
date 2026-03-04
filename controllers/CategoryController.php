@@ -31,8 +31,8 @@ class CategoryController extends BaseController
 
         $categories = $this->categoryModel->getAllWithSubcategories();
 
-        ob_start();
-        include __DIR__ . '/../views/categories/index.php';
-        return ob_get_clean();
+        return $this->render('categories/index.php', [
+            'categories' => $categories,
+        ]);
     }
 }

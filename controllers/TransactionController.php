@@ -33,8 +33,11 @@ class TransactionController extends BaseController
         $recentTransactions = $this->transactionModel->getRecent(15);
         $totalsByType = $this->transactionModel->getTotalsByType();
 
-        ob_start();
-        include __DIR__ . '/../views/transactions/index.php';
-        return ob_get_clean();
+        return $this->render('transactions/index.php', [
+            'accounts' => $accounts,
+            'categories' => $categories,
+            'recentTransactions' => $recentTransactions,
+            'totalsByType' => $totalsByType,
+        ]);
     }
 }

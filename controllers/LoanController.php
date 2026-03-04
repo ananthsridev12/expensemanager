@@ -29,8 +29,10 @@ class LoanController extends BaseController
             'total_principal' => array_sum(array_column($loans, 'principal_amount')),
         ];
 
-        ob_start();
-        include __DIR__ . '/../views/loans/index.php';
-        return ob_get_clean();
+        return $this->render('loans/index.php', [
+            'loans' => $loans,
+            'upcomingEmis' => $upcomingEmis,
+            'summary' => $summary,
+        ]);
     }
 }

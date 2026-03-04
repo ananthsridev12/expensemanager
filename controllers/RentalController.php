@@ -45,8 +45,13 @@ class RentalController extends BaseController
         $upcoming = $this->rentalModel->getUpcomingRent(5);
         $summary = $this->rentalModel->getSummary();
 
-        ob_start();
-        include __DIR__ . '/../views/rental/index.php';
-        return ob_get_clean();
+        return $this->render('rental/index.php', [
+            'properties' => $properties,
+            'tenants' => $tenants,
+            'contracts' => $contracts,
+            'transactions' => $transactions,
+            'upcoming' => $upcoming,
+            'summary' => $summary,
+        ]);
     }
 }

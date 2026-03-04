@@ -25,8 +25,9 @@ class LendingController extends BaseController
         $records = $this->lendingModel->getAll();
         $summary = $this->lendingModel->getSummary();
 
-        ob_start();
-        include __DIR__ . '/../views/lending/index.php';
-        return ob_get_clean();
+        return $this->render('lending/index.php', [
+            'records' => $records,
+            'summary' => $summary,
+        ]);
     }
 }

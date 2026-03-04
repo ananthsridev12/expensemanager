@@ -25,8 +25,9 @@ class ReminderController extends BaseController
         $upcoming = $this->reminderModel->getUpcoming(10);
         $total = $this->reminderModel->count();
 
-        ob_start();
-        include __DIR__ . '/../views/reminders/index.php';
-        return ob_get_clean();
+        return $this->render('reminders/index.php', [
+            'upcoming' => $upcoming,
+            'total' => $total,
+        ]);
     }
 }
