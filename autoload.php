@@ -10,7 +10,7 @@ spl_autoload_register(function (string $class): void {
     ];
 
     foreach ($prefixes as $prefix => $dir) {
-        if (str_starts_with($class, $prefix)) {
+        if (strncmp($class, $prefix, strlen($prefix)) === 0) {
             $relativeClass = substr($class, strlen($prefix));
             $path = __DIR__ . '/' . $dir . str_replace('\\', '/', $relativeClass) . '.php';
             if (file_exists($path)) {
