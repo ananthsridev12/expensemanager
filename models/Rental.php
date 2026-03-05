@@ -21,15 +21,34 @@ class Rental extends BaseModel
 
     public function createTenant(array $input): bool
     {
-        $sql = 'INSERT INTO tenants (name, mobile, email, id_proof, address) VALUES (:name, :mobile, :email, :id_proof, :address)';
+        $contactId = (int) ($input['contact_id'] ?? 0);
+        if ($contactId <= 0) {
+            return false;
+        }
+
+        $existing = $this->db->prepare('SELECT id FROM tenants WHERE contact_id = :contact_id LIMIT 1');
+        $existing->execute([':contact_id' => $contactId]);
+        if ($existing->fetch(PDO::FETCH_ASSOC)) {
+            return true;
+        }
+
+        $contactStmt = $this->db->prepare('SELECT name, mobile, email, address FROM contacts WHERE id = :id LIMIT 1');
+        $contactStmt->execute([':id' => $contactId]);
+        $contact = $contactStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$contact) {
+            return false;
+        }
+
+        $sql = 'INSERT INTO tenants (contact_id, name, mobile, email, id_proof, address) VALUES (:contact_id, :name, :mobile, :email, :id_proof, :address)';
         $stmt = $this->db->prepare($sql);
 
         return $stmt->execute([
-            ':name' => trim($input['tenant_name'] ?? 'Tenant'),
-            ':mobile' => $input['tenant_mobile'] ?? null,
-            ':email' => $input['tenant_email'] ?? null,
+            ':contact_id' => $contactId,
+            ':name' => trim((string) ($contact['name'] ?? 'Tenant')),
+            ':mobile' => $contact['mobile'] ?? null,
+            ':email' => $contact['email'] ?? null,
             ':id_proof' => $input['tenant_id_proof'] ?? null,
-            ':address' => $input['tenant_address'] ?? null,
+            ':address' => $contact['address'] ?? null,
         ]);
     }
 
@@ -53,7 +72,7 @@ class Rental extends BaseModel
         $sql = 'INSERT INTO rental_transactions (contract_id, rent_month, due_date, paid_amount, payment_status, notes) VALUES (:contract_id, :rent_month, :due_date, :paid_amount, :payment_status, :notes)';
         $stmt = $this->db->prepare($sql);
 
-        return $stmt->execute([
+        $created = $stmt->execute([
             ':contract_id' => (int) ($input['contract_id'] ?? 0),
             ':rent_month' => $input['rent_month'] ?? date('Y-m-01'),
             ':due_date' => $input['due_date'] ?? date('Y-m-d'),
@@ -61,6 +80,21 @@ class Rental extends BaseModel
             ':payment_status' => $input['payment_status'] ?? 'pending',
             ':notes' => $input['notes'] ?? null,
         ]);
+
+        if (!$created) {
+            return false;
+        }
+
+        $rentalTxId = (int) $this->db->lastInsertId();
+        $this->createLedgerTransactions(
+            $rentalTxId,
+            (int) ($input['contract_id'] ?? 0),
+            (float) ($input['paid_amount'] ?? 0),
+            (string) ($input['due_date'] ?? date('Y-m-d')),
+            (string) ($input['deposit_account'] ?? ''),
+            (string) ($input['notes'] ?? '')
+        );
+        return true;
     }
 
     public function getProperties(): array
@@ -74,6 +108,13 @@ class Rental extends BaseModel
     {
         $stmt = $this->db->query('SELECT * FROM tenants ORDER BY created_at DESC');
 
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getContacts(): array
+    {
+        $sql = "SELECT id, name, mobile, email FROM contacts WHERE contact_type IN ('tenant', 'both', 'other') ORDER BY name ASC";
+        $stmt = $this->db->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -139,5 +180,66 @@ SQL;
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function createLedgerTransactions(
+        int $rentalTransactionId,
+        int $contractId,
+        float $paidAmount,
+        string $paymentDate,
+        string $depositAccount,
+        string $notes
+    ): void {
+        if ($rentalTransactionId <= 0 || $contractId <= 0 || $paidAmount <= 0 || $depositAccount === '' || strpos($depositAccount, ':') === false) {
+            return;
+        }
+
+        [$accountType, $accountIdRaw] = explode(':', $depositAccount, 2);
+        $accountId = (int) $accountIdRaw;
+        $allowedTypes = ['savings', 'current', 'cash', 'other'];
+        if ($accountId <= 0 || !in_array($accountType, $allowedTypes, true)) {
+            return;
+        }
+
+        $contractStmt = $this->db->prepare(
+            'SELECT p.property_name, t.name AS tenant_name
+             FROM rental_contracts rc
+             LEFT JOIN properties p ON p.id = rc.property_id
+             LEFT JOIN tenants t ON t.id = rc.tenant_id
+             WHERE rc.id = :id
+             LIMIT 1'
+        );
+        $contractStmt->execute([':id' => $contractId]);
+        $contract = $contractStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        $entryNote = $notes !== '' ? $notes : ('Rent received: ' . ($contract['property_name'] ?? 'Property') . ' / ' . ($contract['tenant_name'] ?? 'Tenant'));
+
+        $stmt = $this->db->prepare(
+            'INSERT INTO transactions (transaction_date, account_type, account_id, transaction_type, amount, reference_type, reference_id, notes)
+             VALUES (:transaction_date, :account_type, :account_id, :transaction_type, :amount, :reference_type, :reference_id, :notes)'
+        );
+
+        // Money received into selected account.
+        $stmt->execute([
+            ':transaction_date' => $paymentDate,
+            ':account_type' => $accountType,
+            ':account_id' => $accountId,
+            ':transaction_type' => 'income',
+            ':amount' => $paidAmount,
+            ':reference_type' => 'rental',
+            ':reference_id' => $rentalTransactionId,
+            ':notes' => $entryNote,
+        ]);
+
+        // Rental income stream entry.
+        $stmt->execute([
+            ':transaction_date' => $paymentDate,
+            ':account_type' => 'rental',
+            ':account_id' => null,
+            ':transaction_type' => 'expense',
+            ':amount' => $paidAmount,
+            ':reference_type' => 'rental',
+            ':reference_id' => $rentalTransactionId,
+            ':notes' => $entryNote,
+        ]);
     }
 }

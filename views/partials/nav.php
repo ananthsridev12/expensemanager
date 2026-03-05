@@ -1,11 +1,17 @@
-<nav class="main-nav">
-    <?php $module = $activeModule ?? 'dashboard'; ?>
-    <span class="brand">Easi7 Finance</span>
+<?php $module = $activeModule ?? 'dashboard'; ?>
+<button type="button" class="menu-toggle" id="menu-toggle" aria-label="Open menu" aria-expanded="false">Menu</button>
+<div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
+<nav class="main-nav" id="main-nav" aria-label="Primary">
+    <div class="nav-head">
+        <span class="brand">Easi7 Finance</span>
+        <button type="button" class="nav-close" id="nav-close" aria-label="Close menu">Close</button>
+    </div>
     <a href="?module=dashboard" class="<?= $module === 'dashboard' ? 'is-active' : '' ?>">Dashboard</a>
+    <a href="?module=analytics" class="<?= $module === 'analytics' ? 'is-active' : '' ?>">Analytics</a>
     <a href="?module=accounts" class="<?= $module === 'accounts' ? 'is-active' : '' ?>">Accounts</a>
+    <a href="?module=contacts" class="<?= $module === 'contacts' ? 'is-active' : '' ?>">Contacts</a>
     <a href="?module=categories" class="<?= $module === 'categories' ? 'is-active' : '' ?>">Categories</a>
     <a href="?module=transactions" class="<?= $module === 'transactions' ? 'is-active' : '' ?>">Transactions</a>
-    <a href="?module=credit_cards" class="<?= $module === 'credit_cards' ? 'is-active' : '' ?>">Credit Cards</a>
     <a href="?module=reminders" class="<?= $module === 'reminders' ? 'is-active' : '' ?>">Reminders</a>
     <a href="?module=loans" class="<?= $module === 'loans' ? 'is-active' : '' ?>">Loans</a>
     <a href="?module=lending" class="<?= $module === 'lending' ? 'is-active' : '' ?>">Lending</a>
@@ -13,3 +19,43 @@
     <a href="?module=sip" class="<?= $module === 'sip' ? 'is-active' : '' ?>">SIP</a>
     <a href="?module=rental" class="<?= $module === 'rental' ? 'is-active' : '' ?>">Rental</a>
 </nav>
+<script>
+    (function () {
+        const body = document.body;
+        const toggle = document.getElementById('menu-toggle');
+        const closeBtn = document.getElementById('nav-close');
+        const backdrop = document.getElementById('sidebar-backdrop');
+
+        if (!toggle || !closeBtn || !backdrop) {
+            return;
+        }
+
+        function closeMenu() {
+            body.classList.remove('nav-open');
+            toggle.setAttribute('aria-expanded', 'false');
+            backdrop.hidden = true;
+        }
+
+        function openMenu() {
+            body.classList.add('nav-open');
+            toggle.setAttribute('aria-expanded', 'true');
+            backdrop.hidden = false;
+        }
+
+        toggle.addEventListener('click', function () {
+            if (body.classList.contains('nav-open')) {
+                closeMenu();
+                return;
+            }
+            openMenu();
+        });
+
+        closeBtn.addEventListener('click', closeMenu);
+        backdrop.addEventListener('click', closeMenu);
+        window.addEventListener('resize', function () {
+            if (window.innerWidth > 980) {
+                closeMenu();
+            }
+        });
+    })();
+</script>

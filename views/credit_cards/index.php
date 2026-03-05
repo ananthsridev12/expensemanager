@@ -27,35 +27,8 @@ include __DIR__ . '/../partials/nav.php';
     </section>
 
     <section class="module-panel">
-        <h2>Add credit card</h2>
-        <form method="post" class="module-form">
-            <input type="hidden" name="form" value="credit_card">
-            <label>
-                Bank name
-                <input type="text" name="bank_name" required>
-            </label>
-            <label>
-                Card name
-                <input type="text" name="card_name" required>
-            </label>
-            <label>
-                Credit limit
-                <input type="number" name="credit_limit" step="0.01" min="0" required>
-            </label>
-            <label>
-                Billing date (day of month)
-                <input type="number" name="billing_date" min="1" max="28" value="1" required>
-            </label>
-            <label>
-                Due date (day of month)
-                <input type="number" name="due_date" min="1" max="28" value="1" required>
-            </label>
-            <label>
-                Outstanding balance
-                <input type="number" name="outstanding_balance" step="0.01" min="0" value="0">
-            </label>
-            <button type="submit">Save card</button>
-        </form>
+        <h2>Manage cards from Accounts</h2>
+        <p class="muted">Create or edit credit cards from the <a href="?module=accounts">Accounts module</a> using account type = Credit card.</p>
     </section>
 
     <section class="module-panel">

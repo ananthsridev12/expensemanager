@@ -18,13 +18,43 @@ class Transaction extends BaseModel
         $sql = <<<SQL
 SELECT
     t.*,
-    a.bank_name,
+    CASE
+        WHEN t.account_type = 'loan' THEN 'Loan'
+        WHEN t.account_type = 'lending' THEN 'Lending'
+        WHEN t.account_type = 'rental' THEN 'Rental'
+        WHEN a.account_type = 'credit_card' THEN COALESCE(cc.bank_name, a.bank_name)
+        ELSE a.bank_name
+    END AS bank_name,
+    CASE
+        WHEN t.account_type = 'loan' THEN l.loan_name
+        WHEN t.account_type = 'lending' THEN ct.name
+        WHEN t.account_type = 'rental' THEN CONCAT(COALESCE(rt_tenant.name, 'Tenant'), ' / ', COALESCE(rt_property.property_name, 'Property'))
+        WHEN a.account_type = 'credit_card' THEN COALESCE(cc.card_name, a.account_name)
+        ELSE a.account_name
+    END AS account_name,
     c.name AS category_name,
     sc.name AS subcategory_name
 FROM transactions t
 LEFT JOIN categories c ON c.id = t.category_id
 LEFT JOIN subcategories sc ON sc.id = t.subcategory_id
 LEFT JOIN accounts a ON a.id = t.account_id
+LEFT JOIN credit_cards cc ON cc.account_id = a.id
+LEFT JOIN loans l ON l.id = CASE
+    WHEN t.account_type = 'loan' AND t.reference_type = 'loan' THEN t.reference_id
+    ELSE NULL
+END
+LEFT JOIN lending_records lr ON lr.id = CASE
+    WHEN t.reference_type = 'lending' THEN t.reference_id
+    ELSE NULL
+END
+LEFT JOIN contacts ct ON ct.id = lr.contact_id
+LEFT JOIN rental_transactions rt ON rt.id = CASE
+    WHEN t.reference_type = 'rental' THEN t.reference_id
+    ELSE NULL
+END
+LEFT JOIN rental_contracts rtc ON rtc.id = rt.contract_id
+LEFT JOIN tenants rt_tenant ON rt_tenant.id = rtc.tenant_id
+LEFT JOIN properties rt_property ON rt_property.id = rtc.property_id
 ORDER BY t.transaction_date DESC, t.created_at DESC
 LIMIT :limit
 SQL;

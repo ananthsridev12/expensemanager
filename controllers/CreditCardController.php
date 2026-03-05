@@ -16,12 +16,6 @@ class CreditCardController extends BaseController
 
     public function index(): string
     {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'credit_card') {
-            $this->creditCardModel->create($_POST);
-            header('Location: ?module=credit_cards');
-            exit;
-        }
-
         $cards = $this->creditCardModel->getAll();
         $summary = $this->creditCardModel->getSummary();
 

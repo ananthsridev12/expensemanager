@@ -1,6 +1,7 @@
 <?php
 $activeModule = 'loans';
 $loans = $loans ?? [];
+$accounts = $accounts ?? [];
 $upcomingEmis = $upcomingEmis ?? [];
 $summary = $summary ?? ['count' => 0, 'total_principal' => 0.0];
 
@@ -41,6 +42,13 @@ include __DIR__ . '/../partials/nav.php';
                 <input type="text" name="loan_name" required>
             </label>
             <label>
+                Repayment type
+                <select name="repayment_type">
+                    <option value="emi" selected>EMI (Principal + Interest monthly)</option>
+                    <option value="interest_only">Interest Only (Principal at end)</option>
+                </select>
+            </label>
+            <label>
                 Principal amount
                 <input type="number" name="principal_amount" step="0.01" required>
             </label>
@@ -57,12 +65,23 @@ include __DIR__ . '/../partials/nav.php';
                 <input type="number" name="processing_fee" step="0.01">
             </label>
             <label>
-                GST
-                <input type="number" name="gst" step="0.01">
+                GST on processing fee (%)
+                <input type="number" name="gst" step="0.01" value="18">
             </label>
             <label>
                 Start date
                 <input type="date" name="start_date" value="<?= date('Y-m-d') ?>" required>
+            </label>
+            <label>
+                Disburse funds to account
+                <select name="disbursement_account">
+                    <option value="">Select account (optional)</option>
+                    <?php foreach ($accounts as $account): ?>
+                        <option value="<?= htmlspecialchars(($account['account_type'] ?? 'savings') . ':' . $account['id']) ?>">
+                            <?= htmlspecialchars(($account['bank_name'] ?? '') . ' - ' . ($account['account_name'] ?? '')) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </label>
             <button type="submit">Create loan</button>
         </form>
@@ -79,6 +98,7 @@ include __DIR__ . '/../partials/nav.php';
                         <tr>
                             <th>Name</th>
                             <th>Type</th>
+                            <th>Repayment</th>
                             <th>Principal</th>
                             <th>EMI</th>
                             <th>Start date</th>
@@ -89,6 +109,7 @@ include __DIR__ . '/../partials/nav.php';
                             <tr>
                                 <td><?= htmlspecialchars($loan['loan_name']) ?></td>
                                 <td><?= htmlspecialchars(ucfirst($loan['loan_type'])) ?></td>
+                                <td><?= htmlspecialchars(($loan['repayment_type'] ?? 'emi') === 'interest_only' ? 'Interest Only' : 'EMI') ?></td>
                                 <td><?= formatCurrency((float) $loan['principal_amount']) ?></td>
                                 <td><?= formatCurrency((float) $loan['emi_amount']) ?></td>
                                 <td><?= htmlspecialchars($loan['start_date']) ?></td>

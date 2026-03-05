@@ -6,9 +6,15 @@ use PDO;
 
 class Lending extends BaseModel
 {
+    private const LENDING_CATEGORY_ID = 27;
+
     public function create(array $input): bool
     {
-        $contactId = $this->createContact($input);
+        $contactId = (int) ($input['contact_id'] ?? 0);
+        if ($contactId <= 0) {
+            return false;
+        }
+
         $principal = (float) ($input['principal_amount'] ?? 0);
         $interestRate = (float) ($input['interest_rate'] ?? 0);
         $lendingDate = $input['lending_date'] ?? date('Y-m-d');
@@ -16,10 +22,13 @@ class Lending extends BaseModel
         $totalRepaid = (float) ($input['total_repaid'] ?? 0);
         $outstanding = $principal - $totalRepaid;
 
+        if ($principal <= 0) {
+            return false;
+        }
+
         $sql = 'INSERT INTO lending_records (contact_id, principal_amount, interest_rate, lending_date, due_date, total_repaid, outstanding_amount, status, notes) VALUES (:contact_id, :principal_amount, :interest_rate, :lending_date, :due_date, :total_repaid, :outstanding_amount, :status, :notes)';
         $stmt = $this->db->prepare($sql);
-
-        return $stmt->execute([
+        $created = $stmt->execute([
             ':contact_id' => $contactId,
             ':principal_amount' => $principal,
             ':interest_rate' => $interestRate,
@@ -30,23 +39,36 @@ class Lending extends BaseModel
             ':status' => $input['status'] ?? 'ongoing',
             ':notes' => $input['notes'] ?? null,
         ]);
+
+        if (!$created) {
+            return false;
+        }
+
+        $recordId = (int) $this->db->lastInsertId();
+        $this->createLedgerTransactions($recordId, $contactId, $principal, $lendingDate, (string) ($input['funding_account'] ?? ''), (string) ($input['notes'] ?? ''));
+        return true;
     }
 
-    public function createContact(array $input): int
+    public function getContacts(): array
     {
-        $sql = 'INSERT INTO contacts (name, mobile, email, address, city, state, notes) VALUES (:name, :mobile, :email, :address, :city, :state, :notes)';
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            ':name' => trim($input['contact_name'] ?? 'Unknown'),
-            ':mobile' => $input['contact_mobile'] ?? null,
-            ':email' => $input['contact_email'] ?? null,
-            ':address' => $input['contact_address'] ?? null,
-            ':city' => $input['contact_city'] ?? null,
-            ':state' => $input['contact_state'] ?? null,
-            ':notes' => $input['contact_notes'] ?? null,
-        ]);
+        $stmt = $this->db->query('SELECT id, name, mobile, email FROM contacts ORDER BY name ASC');
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 
-        return (int) $this->db->lastInsertId();
+    public function getOpenRecords(): array
+    {
+        $sql = <<<SQL
+SELECT
+    lr.id,
+    lr.outstanding_amount,
+    c.name AS contact_name
+FROM lending_records lr
+JOIN contacts c ON c.id = lr.contact_id
+WHERE lr.status = 'ongoing' AND lr.outstanding_amount > 0
+ORDER BY lr.lending_date DESC
+SQL;
+        $stmt = $this->db->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getAll(): array
@@ -72,5 +94,179 @@ SQL;
             'count' => (int) $row['total_records'],
             'outstanding' => (float) $row['total_outstanding'],
         ];
+    }
+
+    public function recordRepayment(array $input): bool
+    {
+        $recordId = (int) ($input['lending_record_id'] ?? 0);
+        $amount = max(0, (float) ($input['repayment_amount'] ?? 0));
+        $repaymentDate = !empty($input['repayment_date']) ? (string) $input['repayment_date'] : date('Y-m-d');
+        $depositAccount = (string) ($input['deposit_account'] ?? '');
+        $notes = trim((string) ($input['notes'] ?? ''));
+
+        if ($recordId <= 0 || $amount <= 0) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare(
+            'SELECT lr.id, lr.contact_id, lr.total_repaid, lr.outstanding_amount, c.name AS contact_name
+             FROM lending_records lr
+             JOIN contacts c ON c.id = lr.contact_id
+             WHERE lr.id = :id
+             LIMIT 1'
+        );
+        $stmt->execute([':id' => $recordId]);
+        $record = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$record) {
+            return false;
+        }
+
+        $payAmount = min($amount, (float) $record['outstanding_amount']);
+        if ($payAmount <= 0) {
+            return false;
+        }
+
+        $newTotalRepaid = round((float) $record['total_repaid'] + $payAmount, 2);
+        $newOutstanding = round(max(0, (float) $record['outstanding_amount'] - $payAmount), 2);
+        $newStatus = $newOutstanding <= 0 ? 'closed' : 'ongoing';
+
+        $this->db->beginTransaction();
+        try {
+            $update = $this->db->prepare(
+                'UPDATE lending_records
+                 SET total_repaid = :total_repaid,
+                     outstanding_amount = :outstanding_amount,
+                     status = :status,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = :id'
+            );
+            $update->execute([
+                ':total_repaid' => $newTotalRepaid,
+                ':outstanding_amount' => $newOutstanding,
+                ':status' => $newStatus,
+                ':id' => $recordId,
+            ]);
+
+            $this->createRepaymentLedgerTransactions(
+                $recordId,
+                $record['contact_name'] ?? ('Contact #' . $record['contact_id']),
+                $payAmount,
+                $repaymentDate,
+                $depositAccount,
+                $notes
+            );
+
+            $this->db->commit();
+            return true;
+        } catch (\Throwable $exception) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            return false;
+        }
+    }
+
+    private function createLedgerTransactions(
+        int $recordId,
+        int $contactId,
+        float $principal,
+        string $lendingDate,
+        string $fundingAccount,
+        string $notes
+    ): void {
+        if ($recordId <= 0 || $contactId <= 0 || $principal <= 0 || $fundingAccount === '' || strpos($fundingAccount, ':') === false) {
+            return;
+        }
+
+        [$accountType, $accountIdRaw] = explode(':', $fundingAccount, 2);
+        $accountId = (int) $accountIdRaw;
+        $allowedTypes = ['savings', 'current', 'cash', 'other'];
+        if ($accountId <= 0 || !in_array($accountType, $allowedTypes, true)) {
+            return;
+        }
+
+        $entryNote = $notes !== '' ? $notes : 'Lending disbursal to contact #' . $contactId;
+        $stmt = $this->db->prepare(
+            'INSERT INTO transactions (transaction_date, account_type, account_id, transaction_type, category_id, amount, reference_type, reference_id, notes)
+             VALUES (:transaction_date, :account_type, :account_id, :transaction_type, :category_id, :amount, :reference_type, :reference_id, :notes)'
+        );
+
+        // Money moved from selected account to lending exposure.
+        $stmt->execute([
+            ':transaction_date' => $lendingDate,
+            ':account_type' => $accountType,
+            ':account_id' => $accountId,
+            ':transaction_type' => 'transfer',
+            ':category_id' => self::LENDING_CATEGORY_ID,
+            ':amount' => $principal,
+            ':reference_type' => 'lending',
+            ':reference_id' => $recordId,
+            ':notes' => $entryNote,
+        ]);
+
+        // Mirror transfer entry for lending module.
+        $stmt->execute([
+            ':transaction_date' => $lendingDate,
+            ':account_type' => 'lending',
+            ':account_id' => null,
+            ':transaction_type' => 'transfer',
+            ':category_id' => self::LENDING_CATEGORY_ID,
+            ':amount' => $principal,
+            ':reference_type' => 'lending',
+            ':reference_id' => $recordId,
+            ':notes' => $entryNote,
+        ]);
+    }
+
+    private function createRepaymentLedgerTransactions(
+        int $recordId,
+        string $contactName,
+        float $amount,
+        string $repaymentDate,
+        string $depositAccount,
+        string $notes
+    ): void {
+        if ($recordId <= 0 || $amount <= 0 || $depositAccount === '' || strpos($depositAccount, ':') === false) {
+            return;
+        }
+
+        [$accountType, $accountIdRaw] = explode(':', $depositAccount, 2);
+        $accountId = (int) $accountIdRaw;
+        $allowedTypes = ['savings', 'current', 'cash', 'other'];
+        if ($accountId <= 0 || !in_array($accountType, $allowedTypes, true)) {
+            return;
+        }
+
+        $entryNote = $notes !== '' ? $notes : ('Repayment from ' . $contactName);
+        $stmt = $this->db->prepare(
+            'INSERT INTO transactions (transaction_date, account_type, account_id, transaction_type, category_id, amount, reference_type, reference_id, notes)
+             VALUES (:transaction_date, :account_type, :account_id, :transaction_type, :category_id, :amount, :reference_type, :reference_id, :notes)'
+        );
+
+        // Money moved from lending exposure into selected account.
+        $stmt->execute([
+            ':transaction_date' => $repaymentDate,
+            ':account_type' => $accountType,
+            ':account_id' => $accountId,
+            ':transaction_type' => 'transfer',
+            ':category_id' => self::LENDING_CATEGORY_ID,
+            ':amount' => $amount,
+            ':reference_type' => 'lending',
+            ':reference_id' => $recordId,
+            ':notes' => $entryNote,
+        ]);
+
+        // Mirror transfer entry for lending module.
+        $stmt->execute([
+            ':transaction_date' => $repaymentDate,
+            ':account_type' => 'lending',
+            ':account_id' => null,
+            ':transaction_type' => 'transfer',
+            ':category_id' => self::LENDING_CATEGORY_ID,
+            ':amount' => $amount,
+            ':reference_type' => 'lending',
+            ':reference_id' => $recordId,
+            ':notes' => $entryNote,
+        ]);
     }
 }

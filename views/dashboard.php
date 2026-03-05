@@ -1,11 +1,18 @@
 <?php
 $activeModule = 'dashboard';
 $summary = $summary ?? ['accounts' => ['count' => 0, 'total_balance' => 0], 'categories' => 0, 'transactions' => 0, 'reminders' => 0, 'loans' => ['count' => 0, 'principal' => 0], 'credit_cards' => ['count' => 0, 'total_limit' => 0, 'total_outstanding' => 0], 'lending' => ['count' => 0, 'outstanding' => 0], 'investments' => ['count' => 0], 'rentals' => ['contracts' => 0]];
+$accounts = $accounts ?? [];
+$creditCards = $creditCards ?? [];
+$creditCardStatements = $creditCardStatements ?? [];
+$creditCardEmiPlans = $creditCardEmiPlans ?? [];
+$creditCardEmiSchedule = $creditCardEmiSchedule ?? [];
+$categories = $categories ?? [];
+$totalsByType = $totalsByType ?? [];
 $recentTransactions = $recentTransactions ?? [];
 $upcomingReminders = $upcomingReminders ?? [];
 $upcomingEmis = $upcomingEmis ?? [];
 
-include __DIR__ . '/../partials/nav.php';
+include __DIR__ . '/partials/nav.php';
 ?>
 <main class="module-content">
     <header class="module-header">
@@ -57,6 +64,230 @@ include __DIR__ . '/../partials/nav.php';
             <h3>Rental contracts</h3>
             <p><?= $summary['rentals']['contracts'] ?></p>
         </article>
+    </section>
+
+    <section class="module-panel">
+        <h2>Accounts & credit cards</h2>
+        <?php if (empty($accounts) && empty($creditCards)): ?>
+            <p class="muted">Add accounts or credit cards to start tracking balances.</p>
+        <?php else: ?>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Bank</th>
+                            <th>Name</th>
+                            <th>Balance / Limit</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($accounts as $account): ?>
+                            <?php if (($account['account_type'] ?? '') === 'credit_card') { continue; } ?>
+                            <tr>
+                                <td>Bank</td>
+                                <td><?= htmlspecialchars($account['bank_name'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($account['account_name'] ?? '-') ?></td>
+                                <td><?= formatCurrency((float) ($account['balance'] ?? $account['opening_balance'] ?? 0)) ?></td>
+                                <td><span class="pill">Active</span></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        <?php foreach ($creditCards as $card): ?>
+                            <tr>
+                                <td>Credit Card</td>
+                                <td><?= htmlspecialchars($card['bank_name'] ?? '—') ?></td>
+                                <td><?= htmlspecialchars($card['card_name'] ?? '—') ?></td>
+                                <td><?= formatCurrency((float) ($card['outstanding_balance'] ?? 0)) ?> / <?= formatCurrency((float) ($card['credit_limit'] ?? 0)) ?></td>
+                                <td><span class="pill"><?= $card['outstanding_balance'] > 0 ? 'Active EMIs' : 'Clear' ?></span></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
+
+    <section class="module-panel">
+        <h2>Record a transaction</h2>
+        <form method="post" class="module-form">
+            <input type="hidden" name="form" value="transaction">
+            <label>
+                Date
+                <input type="date" name="transaction_date" value="<?= date('Y-m-d') ?>" required>
+            </label>
+            <label>
+                From account
+                <select name="account_id" id="from-account" required>
+                    <?php foreach ($accounts as $account): ?>
+                        <?php if (($account['account_type'] ?? '') === 'credit_card') { continue; } ?>
+                        <option value="<?= htmlspecialchars(($account['account_type'] ?? 'savings') . ':' . $account['id']) ?>" data-type="<?= htmlspecialchars($account['account_type'] ?? 'savings') ?>"><?= htmlspecialchars($account['bank_name'] . ' - ' . $account['account_name']) ?></option>
+                    <?php endforeach; ?>
+                    <?php foreach ($creditCards as $card): ?>
+                        <?php if (empty($card['account_id'])) { continue; } ?>
+                        <option value="credit_card:<?= (int) $card['account_id'] ?>" data-type="credit_card"><?= htmlspecialchars($card['bank_name'] . ' - ' . $card['card_name'] . ' (Card)') ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
+                Transaction type
+                <select name="transaction_type" id="transaction-type">
+                    <option value="income">Income</option>
+                    <option value="expense" selected>Expense</option>
+                    <option value="transfer">Transfer</option>
+                </select>
+            </label>
+            <label>
+                Amount
+                <input type="number" name="amount" step="0.01" min="0" required>
+            </label>
+            <label>
+                Category
+                <select name="category_id" id="category-select">
+                    <option value="">Uncategorized</option>
+                    <?php foreach ($categories as $category): ?>
+                        <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name'] . ' (' . $category['type'] . ')') ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
+                Subcategory
+                <select name="subcategory_id" id="subcategory-select">
+                    <option value="">None</option>
+                    <?php foreach ($categories as $category): ?>
+                        <?php foreach ($category['subcategories'] as $sub): ?>
+                            <option value="<?= $sub['id'] ?>" data-category="<?= $category['id'] ?>"><?= htmlspecialchars($category['name'] . ' — ' . $sub['name']) ?></option>
+                        <?php endforeach; ?>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <div id="transfer-panel" style="display: none;">
+                <label>
+                    To account
+                    <select name="transfer_account_id">
+                        <option value="">Select account</option>
+                        <?php foreach ($accounts as $account): ?>
+                            <?php if (($account['account_type'] ?? '') === 'credit_card') { continue; } ?>
+                            <option value="<?= htmlspecialchars(($account['account_type'] ?? 'savings') . ':' . $account['id']) ?>"><?= htmlspecialchars($account['bank_name'] . ' - ' . $account['account_name']) ?></option>
+                        <?php endforeach; ?>
+                        <?php foreach ($creditCards as $card): ?>
+                            <?php if (empty($card['account_id'])) { continue; } ?>
+                            <option value="credit_card:<?= (int) $card['account_id'] ?>"><?= htmlspecialchars($card['bank_name'] . ' - ' . $card['card_name'] . ' (Card)') ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+            </div>
+            <label>
+                Notes
+                <textarea name="notes" rows="2"></textarea>
+            </label>
+            <button type="submit">Save transaction</button>
+        </form>
+    </section>
+    <section class="module-panel">
+        <h2>EMI plan tracker</h2>
+        <?php if (empty($creditCardEmiPlans)): ?>
+            <p class="muted">No EMI plans yet. Add each pending EMI as a separate plan.</p>
+        <?php else: ?>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Card</th>
+                            <th>Plan</th>
+                            <th>Outstanding principal</th>
+                            <th>Next due</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($creditCardEmiPlans as $plan): ?>
+                            <tr>
+                                <td><?= htmlspecialchars(($plan['bank_name'] ?? '') . ' - ' . ($plan['card_name'] ?? '')) ?></td>
+                                <td><?= htmlspecialchars($plan['plan_name'] ?? '') ?></td>
+                                <td><?= formatCurrency((float) ($plan['outstanding_principal'] ?? 0)) ?></td>
+                                <td><?= htmlspecialchars($plan['next_due_date'] ?? '-') ?></td>
+                                <td><span class="pill"><?= htmlspecialchars(ucfirst((string) ($plan['status'] ?? 'active'))) ?></span></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
+
+    <section class="module-panel">
+        <h2>Credit card billing snapshot</h2>
+        <?php if (empty($creditCardStatements)): ?>
+            <p class="muted">No credit-card statements yet.</p>
+        <?php else: ?>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Card</th>
+                            <th>Cycle</th>
+                            <th>Non-EMI spend</th>
+                            <th>EMI due in cycle</th>
+                            <th>Estimated statement due</th>
+                            <th>Total outstanding</th>
+                            <th>Available limit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($creditCardStatements as $statement): ?>
+                            <tr>
+                                <td><?= htmlspecialchars(($statement['bank_name'] ?? '') . ' - ' . ($statement['card_name'] ?? '')) ?></td>
+                                <td><?= htmlspecialchars(($statement['cycle_start'] ?? '') . ' to ' . ($statement['cycle_end'] ?? '')) ?></td>
+                                <td><?= formatCurrency((float) ($statement['statement_spend_non_emi'] ?? 0)) ?></td>
+                                <td><?= formatCurrency((float) ($statement['statement_emi_due'] ?? 0)) ?></td>
+                                <td><?= formatCurrency((float) ($statement['statement_total_due'] ?? 0)) ?></td>
+                                <td><?= formatCurrency((float) ($statement['outstanding_balance'] ?? 0)) ?></td>
+                                <td><?= formatCurrency((float) ($statement['available_limit'] ?? 0)) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
+
+    <section class="module-panel">
+        <h2>EMI schedule</h2>
+        <?php if (empty($creditCardEmiSchedule)): ?>
+            <p class="muted">No EMI schedule yet.</p>
+        <?php else: ?>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Card</th>
+                            <th>Plan</th>
+                            <th>Installment</th>
+                            <th>Due date</th>
+                            <th>Principal</th>
+                            <th>Interest</th>
+                            <th>Fee + GST</th>
+                            <th>Total due</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($creditCardEmiSchedule as $row): ?>
+                            <tr>
+                                <td><?= htmlspecialchars(($row['bank_name'] ?? '') . ' - ' . ($row['card_name'] ?? '')) ?></td>
+                                <td><?= htmlspecialchars($row['plan_name'] ?? '') ?></td>
+                                <td>#<?= (int) ($row['installment_no'] ?? 0) ?></td>
+                                <td><?= htmlspecialchars($row['due_date'] ?? '-') ?></td>
+                                <td><?= formatCurrency((float) ($row['principal_component'] ?? 0)) ?></td>
+                                <td><?= formatCurrency((float) ($row['interest_component'] ?? 0)) ?></td>
+                                <td><?= formatCurrency((float) (($row['processing_fee'] ?? 0) + ($row['gst_amount'] ?? 0))) ?></td>
+                                <td><?= formatCurrency((float) ($row['total_due'] ?? 0)) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
     </section>
 
     <section class="module-panel">
@@ -155,4 +386,48 @@ include __DIR__ . '/../partials/nav.php';
             </div>
         <?php endif; ?>
     </section>
+
+    <script>
+        (function () {
+            const typeSelect = document.getElementById('transaction-type');
+            const transferPanel = document.getElementById('transfer-panel');
+            const categorySelect = document.getElementById('category-select');
+            const subcategorySelect = document.getElementById('subcategory-select');
+
+            const storedOptions = Array.from(subcategorySelect.querySelectorAll('option[data-category]')).map(option => ({
+                value: option.value,
+                label: option.innerHTML,
+                category: option.dataset.category,
+            }));
+
+            function toggleTransferFields() {
+                transferPanel.style.display = typeSelect.value === 'transfer' ? 'block' : 'none';
+            }
+
+            function refreshSubcategories() {
+                const selectedCategory = categorySelect.value;
+                subcategorySelect.innerHTML = '<option value="">None</option>';
+
+                storedOptions.forEach(item => {
+                    if (!selectedCategory || item.category === selectedCategory) {
+                        const option = document.createElement('option');
+                        option.value = item.value;
+                        option.innerHTML = item.label;
+                        option.dataset.category = item.category;
+                        subcategorySelect.appendChild(option);
+                    }
+                });
+            }
+
+            typeSelect.addEventListener('change', toggleTransferFields);
+            categorySelect.addEventListener('change', refreshSubcategories);
+
+            toggleTransferFields();
+            refreshSubcategories();
+        })();
+    </script>
 </main>
+
+
+
+

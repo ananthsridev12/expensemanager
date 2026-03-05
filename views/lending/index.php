@@ -1,6 +1,8 @@
 <?php
 $activeModule = 'lending';
 $records = $records ?? [];
+$openRecords = $openRecords ?? [];
+$accounts = $accounts ?? [];
 $summary = $summary ?? ['count' => 0, 'outstanding' => 0.0];
 
 include __DIR__ . '/../partials/nav.php';
@@ -27,28 +29,15 @@ include __DIR__ . '/../partials/nav.php';
         <form method="post" class="module-form">
             <input type="hidden" name="form" value="lending">
             <label>
-                Contact name
-                <input type="text" name="contact_name" required>
+                Search contact
+                <input type="text" id="contact-search" placeholder="Type name/mobile/email" autocomplete="off" required>
             </label>
+            <input type="hidden" name="contact_id" id="contact-id" required>
             <label>
-                Mobile
-                <input type="text" name="contact_mobile">
-            </label>
-            <label>
-                Email
-                <input type="email" name="contact_email">
-            </label>
-            <label>
-                Address
-                <input type="text" name="contact_address">
-            </label>
-            <label>
-                City
-                <input type="text" name="contact_city">
-            </label>
-            <label>
-                State
-                <input type="text" name="contact_state">
+                Matched contacts
+                <div id="contact-results" class="module-placeholder">
+                    <small class="muted">Start typing to search contacts.</small>
+                </div>
             </label>
             <label>
                 Lending amount
@@ -61,6 +50,17 @@ include __DIR__ . '/../partials/nav.php';
             <label>
                 Lending date
                 <input type="date" name="lending_date" value="<?= date('Y-m-d') ?>" required>
+            </label>
+            <label>
+                Funding account
+                <select name="funding_account">
+                    <option value="">Select account (optional)</option>
+                    <?php foreach ($accounts as $account): ?>
+                        <option value="<?= htmlspecialchars(($account['account_type'] ?? 'savings') . ':' . $account['id']) ?>">
+                            <?= htmlspecialchars(($account['bank_name'] ?? '') . ' - ' . ($account['account_name'] ?? '')) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </label>
             <label>
                 Due date
@@ -83,6 +83,48 @@ include __DIR__ . '/../partials/nav.php';
                 <textarea name="notes" rows="2"></textarea>
             </label>
             <button type="submit">Record lending</button>
+        </form>
+    </section>
+
+    <section class="module-panel">
+        <h2>Collect repayment</h2>
+        <form method="post" class="module-form">
+            <input type="hidden" name="form" value="repayment">
+            <label>
+                Lending record
+                <select name="lending_record_id" required>
+                    <option value="">Choose record</option>
+                    <?php foreach ($openRecords as $open): ?>
+                        <option value="<?= (int) $open['id'] ?>">
+                            <?= htmlspecialchars(($open['contact_name'] ?? 'Contact') . ' - Outstanding ' . formatCurrency((float) ($open['outstanding_amount'] ?? 0))) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
+                Repayment amount
+                <input type="number" name="repayment_amount" step="0.01" min="0.01" required>
+            </label>
+            <label>
+                Repayment date
+                <input type="date" name="repayment_date" value="<?= date('Y-m-d') ?>" required>
+            </label>
+            <label>
+                Deposit to account
+                <select name="deposit_account">
+                    <option value="">Select account (optional)</option>
+                    <?php foreach ($accounts as $account): ?>
+                        <option value="<?= htmlspecialchars(($account['account_type'] ?? 'savings') . ':' . $account['id']) ?>">
+                            <?= htmlspecialchars(($account['bank_name'] ?? '') . ' - ' . ($account['account_name'] ?? '')) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
+                Notes
+                <textarea name="notes" rows="2"></textarea>
+            </label>
+            <button type="submit">Record repayment</button>
         </form>
     </section>
 
@@ -120,4 +162,59 @@ include __DIR__ . '/../partials/nav.php';
             </div>
         <?php endif; ?>
     </section>
+
+    <script>
+        (function () {
+            const searchInput = document.getElementById('contact-search');
+            const contactIdInput = document.getElementById('contact-id');
+            const resultsWrap = document.getElementById('contact-results');
+            let debounceTimer = null;
+
+            function renderResults(items) {
+                resultsWrap.innerHTML = '';
+                if (!items.length) {
+                    resultsWrap.innerHTML = '<small class="muted">No contacts found.</small>';
+                    return;
+                }
+
+                items.forEach(item => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'secondary';
+                    button.textContent = item.name + (item.mobile ? ' - ' + item.mobile : '');
+                    button.style.marginRight = '0.5rem';
+                    button.style.marginBottom = '0.5rem';
+                    button.addEventListener('click', function () {
+                        contactIdInput.value = String(item.id);
+                        searchInput.value = item.name + (item.mobile ? ' - ' + item.mobile : '');
+                        resultsWrap.innerHTML = '<small class="muted">Selected: ' + button.textContent + '</small>';
+                    });
+                    resultsWrap.appendChild(button);
+                });
+            }
+
+            async function searchContacts(query) {
+                const response = await fetch('?module=lending&action=contact_search&q=' + encodeURIComponent(query));
+                if (!response.ok) {
+                    resultsWrap.innerHTML = '<small class="muted">Search failed. Try again.</small>';
+                    return;
+                }
+                const items = await response.json();
+                renderResults(Array.isArray(items) ? items : []);
+            }
+
+            searchInput.addEventListener('input', function () {
+                contactIdInput.value = '';
+                clearTimeout(debounceTimer);
+                const query = searchInput.value.trim();
+                debounceTimer = setTimeout(function () {
+                    if (query === '') {
+                        resultsWrap.innerHTML = '<small class="muted">Start typing to search contacts.</small>';
+                        return;
+                    }
+                    searchContacts(query);
+                }, 250);
+            });
+        })();
+    </script>
 </main>

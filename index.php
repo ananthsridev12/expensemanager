@@ -3,7 +3,9 @@
 require_once __DIR__ . '/autoload.php';
 
 use Controllers\AccountController;
+use Controllers\AnalyticsController;
 use Controllers\CategoryController;
+use Controllers\ContactController;
 use Controllers\CreditCardController;
 use Controllers\DashboardController;
 use Controllers\InvestmentController;
@@ -21,8 +23,16 @@ switch ($module) {
         $controller = new AccountController();
         echo $controller->index();
         break;
+    case 'analytics':
+        $controller = new AnalyticsController();
+        echo $controller->index();
+        break;
     case 'categories':
         $controller = new CategoryController();
+        echo $controller->index();
+        break;
+    case 'contacts':
+        $controller = new ContactController();
         echo $controller->index();
         break;
     case 'transactions':

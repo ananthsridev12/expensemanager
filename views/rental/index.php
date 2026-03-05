@@ -2,6 +2,8 @@
 $activeModule = 'rental';
 $properties = $properties ?? [];
 $tenants = $tenants ?? [];
+$contacts = $contacts ?? [];
+$accounts = $accounts ?? [];
 $contracts = $contracts ?? [];
 $transactions = $transactions ?? [];
 $upcoming = $upcoming ?? [];
@@ -59,24 +61,19 @@ include __DIR__ . '/../partials/nav.php';
         <form method="post" class="module-form">
             <input type="hidden" name="form" value="tenant">
             <label>
-                Name
-                <input type="text" name="tenant_name" required>
+                Search contact
+                <input type="text" id="tenant-contact-search" placeholder="Type name/mobile/email" autocomplete="off" required>
             </label>
+            <input type="hidden" name="contact_id" id="tenant-contact-id" required>
             <label>
-                Mobile
-                <input type="text" name="tenant_mobile">
-            </label>
-            <label>
-                Email
-                <input type="email" name="tenant_email">
+                Matched contacts
+                <div id="tenant-contact-results" class="module-placeholder">
+                    <small class="muted">Start typing to search contacts.</small>
+                </div>
             </label>
             <label>
                 ID proof
                 <input type="text" name="tenant_id_proof">
-            </label>
-            <label>
-                Address
-                <input type="text" name="tenant_address">
             </label>
             <button type="submit">Add tenant</button>
         </form>
@@ -145,6 +142,17 @@ include __DIR__ . '/../partials/nav.php';
             <label>
                 Paid amount
                 <input type="number" name="paid_amount" step="0.01" required>
+            </label>
+            <label>
+                Deposit to account
+                <select name="deposit_account">
+                    <option value="">Select account (optional)</option>
+                    <?php foreach ($accounts as $account): ?>
+                        <option value="<?= htmlspecialchars(($account['account_type'] ?? 'savings') . ':' . $account['id']) ?>">
+                            <?= htmlspecialchars(($account['bank_name'] ?? '') . ' - ' . ($account['account_name'] ?? '')) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </label>
             <label>
                 Status
@@ -253,4 +261,59 @@ include __DIR__ . '/../partials/nav.php';
             </div>
         <?php endif; ?>
     </section>
+
+    <script>
+        (function () {
+            const searchInput = document.getElementById('tenant-contact-search');
+            const contactIdInput = document.getElementById('tenant-contact-id');
+            const resultsWrap = document.getElementById('tenant-contact-results');
+            let debounceTimer = null;
+
+            function renderResults(items) {
+                resultsWrap.innerHTML = '';
+                if (!items.length) {
+                    resultsWrap.innerHTML = '<small class="muted">No contacts found.</small>';
+                    return;
+                }
+
+                items.forEach(item => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'secondary';
+                    button.textContent = item.name + (item.mobile ? ' - ' + item.mobile : '');
+                    button.style.marginRight = '0.5rem';
+                    button.style.marginBottom = '0.5rem';
+                    button.addEventListener('click', function () {
+                        contactIdInput.value = String(item.id);
+                        searchInput.value = item.name + (item.mobile ? ' - ' + item.mobile : '');
+                        resultsWrap.innerHTML = '<small class="muted">Selected: ' + button.textContent + '</small>';
+                    });
+                    resultsWrap.appendChild(button);
+                });
+            }
+
+            async function searchContacts(query) {
+                const response = await fetch('?module=rental&action=contact_search&q=' + encodeURIComponent(query));
+                if (!response.ok) {
+                    resultsWrap.innerHTML = '<small class="muted">Search failed. Try again.</small>';
+                    return;
+                }
+                const items = await response.json();
+                renderResults(Array.isArray(items) ? items : []);
+            }
+
+            searchInput.addEventListener('input', function () {
+                contactIdInput.value = '';
+                clearTimeout(debounceTimer);
+                const query = searchInput.value.trim();
+                debounceTimer = setTimeout(function () {
+                    if (query === '') {
+                        resultsWrap.innerHTML = '<small class="muted">Start typing to search contacts.</small>';
+                        return;
+                    }
+                    searchContacts(query);
+                }, 250);
+            });
+        })();
+    </script>
 </main>

@@ -34,6 +34,7 @@ CREATE TABLE loans (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     loan_type VARCHAR(64) NOT NULL,
     loan_name VARCHAR(150) NOT NULL,
+    repayment_type ENUM('emi','interest_only') NOT NULL DEFAULT 'emi',
     principal_amount DECIMAL(16,2) NOT NULL,
     interest_rate DECIMAL(5,2) NOT NULL,
     tenure_months SMALLINT UNSIGNED NOT NULL,
@@ -83,6 +84,7 @@ CREATE TABLE contacts (
     address TEXT,
     city VARCHAR(100),
     state VARCHAR(100),
+    contact_type ENUM('tenant','lending','both','other') NOT NULL DEFAULT 'other',
     notes TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
@@ -156,12 +158,14 @@ CREATE TABLE properties (
 
 CREATE TABLE tenants (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    contact_id INT UNSIGNED,
     name VARCHAR(150) NOT NULL,
     mobile VARCHAR(20),
     email VARCHAR(150),
     id_proof VARCHAR(100),
     address TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE rental_contracts (
