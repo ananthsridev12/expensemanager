@@ -16,7 +16,9 @@ use Controllers\RentalController;
 use Controllers\SipController;
 use Controllers\TransactionController;
 
-$module = filter_input(INPUT_GET, 'module', FILTER_SANITIZE_STRING) ?: 'dashboard';
+$moduleInput = filter_input(INPUT_GET, 'module', FILTER_DEFAULT);
+$module = is_string($moduleInput) ? preg_replace('/[^a-z_]/i', '', $moduleInput) : 'dashboard';
+$module = $module !== '' ? $module : 'dashboard';
 
 switch ($module) {
     case 'accounts':

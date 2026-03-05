@@ -19,3 +19,28 @@
 - Wire PSR-4 autoloading via Composer or custom loader
 - Draft migration SQL for each ledger table (accounts, transactions, loans, etc.)
 - Start implementing modules in order: Accounts, Categories, Transactions, Loans, etc.
+
+## Mobile API (Phase 1)
+
+JSON API entrypoint: `api/index.php` (with `api/.htaccess` rewrite).
+
+### Endpoints
+- `POST /api/v1/auth/pin-login`
+- `GET /api/v1/dashboard/summary`
+- `GET /api/v1/accounts`
+- `GET /api/v1/transactions?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&page=1&limit=20`
+- `POST /api/v1/transactions`
+- `GET /api/v1/categories`
+- `GET /api/v1/subcategories?category_id=1`
+
+### API migration
+Import `sql_migrate_api_mobile.sql` once.
+
+It creates:
+- `api_users`
+- `api_sessions`
+
+Default seeded mobile PIN is `1234`. Update it after first login.
+
+### Production auth secret
+Set environment variable `API_JWT_SECRET` in hosting/server config.
