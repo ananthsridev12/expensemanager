@@ -33,6 +33,16 @@ class TransactionController extends BaseController
             header('Location: ?module=transactions');
             exit;
         }
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'transaction_import') {
+            $result = $this->handleTransactionImport($_FILES['transaction_file'] ?? null);
+            $query = http_build_query([
+                'module' => 'transactions',
+                'imported' => $result['imported'],
+                'failed' => $result['failed'],
+            ]);
+            header('Location: ?' . $query);
+            exit;
+        }
 
         $accounts = $this->accountModel->getList();
         $loans = $this->loanModel->getAll();
@@ -46,7 +56,132 @@ class TransactionController extends BaseController
             'categories' => $categories,
             'recentTransactions' => $recentTransactions,
             'totalsByType' => $totalsByType,
+            'imported' => isset($_GET['imported']) ? (int) $_GET['imported'] : null,
+            'failed' => isset($_GET['failed']) ? (int) $_GET['failed'] : null,
         ]);
+    }
+
+    private function handleTransactionImport($file): array
+    {
+        if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return ['imported' => 0, 'failed' => 1];
+        }
+
+        $tmpFile = (string) ($file['tmp_name'] ?? '');
+        if ($tmpFile === '' || !is_uploaded_file($tmpFile)) {
+            return ['imported' => 0, 'failed' => 1];
+        }
+
+        $handle = fopen($tmpFile, 'r');
+        if ($handle === false) {
+            return ['imported' => 0, 'failed' => 1];
+        }
+
+        $header = fgetcsv($handle);
+        if (!is_array($header) || empty($header)) {
+            fclose($handle);
+            return ['imported' => 0, 'failed' => 1];
+        }
+
+        $columns = [];
+        foreach ($header as $index => $name) {
+            $columns[strtolower(trim((string) $name))] = $index;
+        }
+
+        $imported = 0;
+        $failed = 0;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if ($this->isEmptyCsvRow($row)) {
+                continue;
+            }
+
+            $input = $this->buildCsvTransactionInput($columns, $row);
+            if ($input === null) {
+                $failed++;
+                continue;
+            }
+
+            $beforeCount = $this->transactionModel->countAll();
+            $this->handleTransaction($input);
+            $afterCount = $this->transactionModel->countAll();
+            if ($afterCount > $beforeCount) {
+                $imported++;
+            } else {
+                $failed++;
+            }
+        }
+
+        fclose($handle);
+        return ['imported' => $imported, 'failed' => $failed];
+    }
+
+    private function buildCsvTransactionInput(array $columns, array $row): ?array
+    {
+        $date = $this->csvValue($columns, $row, 'transaction_date');
+        $type = strtolower((string) $this->csvValue($columns, $row, 'transaction_type'));
+        $amountRaw = (string) $this->csvValue($columns, $row, 'amount');
+        $amount = (float) str_replace([',', ' '], '', $amountRaw);
+
+        $accountToken = (string) $this->csvValue($columns, $row, 'account_token');
+        if ($accountToken === '') {
+            $accountId = (string) $this->csvValue($columns, $row, 'account_id');
+            $accountType = (string) $this->csvValue($columns, $row, 'account_type');
+            if ($accountId !== '') {
+                $accountToken = ($accountType !== '' ? $accountType : 'savings') . ':' . $accountId;
+            }
+        }
+
+        if ($date === '' || $amount <= 0 || $accountToken === '' || !in_array($type, ['income', 'expense', 'transfer'], true)) {
+            return null;
+        }
+
+        $input = [
+            'form' => 'transaction',
+            'transaction_date' => $date,
+            'account_id' => $accountToken,
+            'transaction_type' => $type,
+            'amount' => $amount,
+            'category_id' => $this->csvValue($columns, $row, 'category_id'),
+            'subcategory_id' => $this->csvValue($columns, $row, 'subcategory_id'),
+            'notes' => $this->csvValue($columns, $row, 'notes'),
+            'reference_type' => $this->csvValue($columns, $row, 'reference_type'),
+            'reference_id' => $this->csvValue($columns, $row, 'reference_id'),
+        ];
+
+        if ($type === 'transfer') {
+            $toToken = (string) $this->csvValue($columns, $row, 'transfer_to_account_token');
+            if ($toToken === '') {
+                $toId = (string) $this->csvValue($columns, $row, 'transfer_to_account_id');
+                $toType = (string) $this->csvValue($columns, $row, 'transfer_to_account_type');
+                if ($toId !== '') {
+                    $toToken = ($toType !== '' ? $toType : 'savings') . ':' . $toId;
+                }
+            }
+            $input['transfer_to_account_id'] = $toToken;
+        }
+
+        return $input;
+    }
+
+    private function csvValue(array $columns, array $row, string $name): string
+    {
+        if (!isset($columns[$name])) {
+            return '';
+        }
+        $index = $columns[$name];
+        return isset($row[$index]) ? trim((string) $row[$index]) : '';
+    }
+
+    private function isEmptyCsvRow(array $row): bool
+    {
+        foreach ($row as $cell) {
+            if (trim((string) $cell) !== '') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function handleTransaction(array $input): void

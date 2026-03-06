@@ -5,6 +5,8 @@ $loans = $loans ?? [];
 $categories = $categories ?? [];
 $recentTransactions = $recentTransactions ?? [];
 $totalsByType = $totalsByType ?? [];
+$imported = $imported ?? null;
+$failed = $failed ?? null;
 
 include __DIR__ . '/../partials/nav.php';
 ?>
@@ -13,6 +15,13 @@ include __DIR__ . '/../partials/nav.php';
         <h1>Transactions</h1>
         <p>Every money movement hits the master ledger with immutable history.</p>
     </header>
+
+    <?php if ($imported !== null || $failed !== null): ?>
+        <section class="module-panel">
+            <strong>Import result:</strong>
+            <span class="muted">Imported <?= (int) ($imported ?? 0) ?> row(s), failed <?= (int) ($failed ?? 0) ?> row(s).</span>
+        </section>
+    <?php endif; ?>
 
     <section class="summary-cards">
         <?php foreach (['income', 'expense', 'transfer'] as $type): ?>
@@ -148,6 +157,30 @@ include __DIR__ . '/../partials/nav.php';
                 <textarea name="notes" rows="2"></textarea>
             </label>
             <button type="submit">Record transaction</button>
+        </form>
+    </section>
+
+    <section class="module-panel">
+        <h2>Import transactions (CSV)</h2>
+        <p class="muted">
+            Upload CSV with header columns:
+            <code>transaction_date,account_token,transaction_type,amount,category_id,subcategory_id,notes,transfer_to_account_token</code>.
+            Use account token format like <code>savings:1</code>, <code>credit_card:3</code>, <code>loan:2</code>.
+        </p>
+        <p class="muted">
+            For transfer rows, fill <code>transfer_to_account_token</code>. You can also use account_id/account_type columns instead of account_token.
+        </p>
+        <p class="muted">
+            Download sample:
+            <a href="public/templates/transactions_import_template.csv" target="_blank" rel="noopener">transactions_import_template.csv</a>
+        </p>
+        <form method="post" enctype="multipart/form-data" class="module-form">
+            <input type="hidden" name="form" value="transaction_import">
+            <label>
+                CSV file
+                <input type="file" name="transaction_file" accept=".csv,text/csv" required>
+            </label>
+            <button type="submit">Import CSV</button>
         </form>
     </section>
 
