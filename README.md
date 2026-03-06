@@ -44,3 +44,13 @@ Default seeded mobile PIN is `1234`. Update it after first login.
 
 ### Production auth secret
 Set environment variable `API_JWT_SECRET` in hosting/server config.
+
+## DB credentials per environment
+
+To avoid git pull overriding hosting DB credentials:
+
+1. Keep `config/database.php` as default/local.
+2. Copy `config/database.override.example.php` to `config/database.override.php`.
+3. Set hosting DB values in `config/database.override.php`.
+
+`config/database.override.php` is ignored by git.
