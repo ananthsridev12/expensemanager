@@ -32,11 +32,19 @@ SELECT
         WHEN a.account_type = 'credit_card' THEN COALESCE(cc.card_name, a.account_name)
         ELSE a.account_name
     END AS account_name,
+    pm.name AS payment_method_name,
+    ct_tx.name AS contact_name,
+    ps_parent.name AS purchase_parent_name,
+    ps_child.name AS purchase_source_name,
     c.name AS category_name,
     sc.name AS subcategory_name
 FROM transactions t
 LEFT JOIN categories c ON c.id = t.category_id
 LEFT JOIN subcategories sc ON sc.id = t.subcategory_id
+LEFT JOIN payment_methods pm ON pm.id = t.payment_method_id
+LEFT JOIN contacts ct_tx ON ct_tx.id = t.contact_id
+LEFT JOIN purchase_sources ps_child ON ps_child.id = t.purchase_source_id
+LEFT JOIN purchase_sources ps_parent ON ps_parent.id = ps_child.parent_id
 LEFT JOIN accounts a ON a.id = t.account_id
 LEFT JOIN credit_cards cc ON cc.account_id = a.id
 LEFT JOIN loans l ON l.id = CASE
@@ -67,7 +75,7 @@ SQL;
 
     public function create(array $input): bool
     {
-        $sql = 'INSERT INTO transactions (transaction_date, account_type, account_id, transaction_type, category_id, subcategory_id, amount, reference_type, reference_id, notes) VALUES (:transaction_date, :account_type, :account_id, :transaction_type, :category_id, :subcategory_id, :amount, :reference_type, :reference_id, :notes)';
+        $sql = 'INSERT INTO transactions (transaction_date, account_type, account_id, transaction_type, category_id, subcategory_id, payment_method_id, contact_id, purchase_source_id, amount, reference_type, reference_id, notes) VALUES (:transaction_date, :account_type, :account_id, :transaction_type, :category_id, :subcategory_id, :payment_method_id, :contact_id, :purchase_source_id, :amount, :reference_type, :reference_id, :notes)';
         $stmt = $this->db->prepare($sql);
 
         return $stmt->execute([
@@ -77,6 +85,9 @@ SQL;
             ':transaction_type' => $input['transaction_type'] ?? 'expense',
             ':category_id' => !empty($input['category_id']) ? (int) $input['category_id'] : null,
             ':subcategory_id' => !empty($input['subcategory_id']) ? (int) $input['subcategory_id'] : null,
+            ':payment_method_id' => !empty($input['payment_method_id']) ? (int) $input['payment_method_id'] : null,
+            ':contact_id' => !empty($input['contact_id']) ? (int) $input['contact_id'] : null,
+            ':purchase_source_id' => !empty($input['purchase_source_id']) ? (int) $input['purchase_source_id'] : null,
             ':amount' => is_numeric($input['amount'] ?? null) ? (float) $input['amount'] : 0.00,
             ':reference_type' => $input['reference_type'] ?? null,
             ':reference_id' => !empty($input['reference_id']) ? (int) $input['reference_id'] : null,

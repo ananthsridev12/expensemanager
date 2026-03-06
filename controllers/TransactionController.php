@@ -4,8 +4,11 @@ namespace Controllers;
 
 use Models\Account;
 use Models\Category;
+use Models\Contact;
 use Models\CreditCard;
 use Models\Loan;
+use Models\PaymentMethod;
+use Models\PurchaseSource;
 use Models\Transaction;
 
 class TransactionController extends BaseController
@@ -15,6 +18,9 @@ class TransactionController extends BaseController
     private Category $categoryModel;
     private CreditCard $creditCardModel;
     private Loan $loanModel;
+    private PaymentMethod $paymentMethodModel;
+    private PurchaseSource $purchaseSourceModel;
+    private Contact $contactModel;
 
     public function __construct()
     {
@@ -24,10 +30,20 @@ class TransactionController extends BaseController
         $this->categoryModel = new Category($this->database);
         $this->creditCardModel = new CreditCard($this->database);
         $this->loanModel = new Loan($this->database);
+        $this->paymentMethodModel = new PaymentMethod($this->database);
+        $this->purchaseSourceModel = new PurchaseSource($this->database);
+        $this->contactModel = new Contact($this->database);
     }
 
     public function index(): string
     {
+        if (($_GET['action'] ?? '') === 'contact_search') {
+            header('Content-Type: application/json');
+            return json_encode(
+                $this->contactModel->search((string) ($_GET['q'] ?? ''), 20)
+            );
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'transaction') {
             $this->handleTransaction($_POST);
             header('Location: ?module=transactions');
@@ -47,6 +63,9 @@ class TransactionController extends BaseController
         $accounts = $this->accountModel->getList();
         $loans = $this->loanModel->getAll();
         $categories = $this->categoryModel->getAllWithSubcategories();
+        $paymentMethods = $this->paymentMethodModel->getAll();
+        $purchaseParents = $this->purchaseSourceModel->getParents();
+        $purchaseChildren = $this->purchaseSourceModel->getChildren();
         $recentTransactions = $this->transactionModel->getRecent(15);
         $totalsByType = $this->transactionModel->getTotalsByType();
 
@@ -54,6 +73,9 @@ class TransactionController extends BaseController
             'accounts' => $accounts,
             'loans' => $loans,
             'categories' => $categories,
+            'paymentMethods' => $paymentMethods,
+            'purchaseParents' => $purchaseParents,
+            'purchaseChildren' => $purchaseChildren,
             'recentTransactions' => $recentTransactions,
             'totalsByType' => $totalsByType,
             'imported' => isset($_GET['imported']) ? (int) $_GET['imported'] : null,
@@ -144,6 +166,13 @@ class TransactionController extends BaseController
             'amount' => $amount,
             'category_id' => $this->csvValue($columns, $row, 'category_id'),
             'subcategory_id' => $this->csvValue($columns, $row, 'subcategory_id'),
+            'payment_method_id' => $this->csvValue($columns, $row, 'payment_method_id'),
+            'new_payment_method' => $this->csvValue($columns, $row, 'payment_method_name'),
+            'contact_id' => $this->csvValue($columns, $row, 'contact_id'),
+            'purchase_parent_id' => $this->csvValue($columns, $row, 'purchase_parent_id'),
+            'new_purchase_parent' => $this->csvValue($columns, $row, 'purchase_parent_name'),
+            'purchase_source_id' => $this->csvValue($columns, $row, 'purchase_source_id'),
+            'new_purchase_source' => $this->csvValue($columns, $row, 'purchase_source_name'),
             'notes' => $this->csvValue($columns, $row, 'notes'),
             'reference_type' => $this->csvValue($columns, $row, 'reference_type'),
             'reference_id' => $this->csvValue($columns, $row, 'reference_id'),
@@ -194,6 +223,10 @@ class TransactionController extends BaseController
             return;
         }
 
+        $paymentMethodId = $this->resolvePaymentMethodId($input);
+        $contactId = !empty($input['contact_id']) ? (int) $input['contact_id'] : null;
+        $purchaseSourceId = $this->resolvePurchaseSourceId($input);
+
         if ($transactionType === 'transfer') {
             [$toType, $toId] = $this->parseAccountToken($input['transfer_to_account_id'] ?? '');
 
@@ -202,6 +235,9 @@ class TransactionController extends BaseController
                     'transaction_date' => $input['transaction_date'] ?? date('Y-m-d'),
                     'category_id' => !empty($input['category_id']) ? (int) $input['category_id'] : null,
                     'subcategory_id' => !empty($input['subcategory_id']) ? (int) $input['subcategory_id'] : null,
+                    'payment_method_id' => $paymentMethodId,
+                    'contact_id' => $contactId,
+                    'purchase_source_id' => $purchaseSourceId,
                     'notes' => $input['notes'] ?? 'Account transfer',
                     'reference_type' => 'transfer',
                 ];
@@ -258,6 +294,9 @@ class TransactionController extends BaseController
                     'account_type' => 'credit_card',
                     'account_id' => $fromId,
                     'transaction_type' => 'expense',
+                    'payment_method_id' => $paymentMethodId,
+                    'contact_id' => $contactId,
+                    'purchase_source_id' => $purchaseSourceId,
                     'reference_type' => 'credit_card_emi_plan',
                     'reference_id' => (int) ($emiResult['plan_id'] ?? 0),
                 ]));
@@ -267,6 +306,9 @@ class TransactionController extends BaseController
             $this->transactionModel->create(array_merge($input, [
                 'account_type' => $fromType,
                 'account_id' => $this->resolveTransactionAccountId($fromType, $fromId),
+                'payment_method_id' => $paymentMethodId,
+                'contact_id' => $contactId,
+                'purchase_source_id' => $purchaseSourceId,
                 'reference_type' => $this->resolveReferenceType($fromType, $input['reference_type'] ?? null),
                 'reference_id' => $this->resolveReferenceId($fromType, $fromId, !empty($input['reference_id']) ? (int) $input['reference_id'] : null),
             ]));
@@ -323,5 +365,49 @@ class TransactionController extends BaseController
         }
 
         return $fallbackId;
+    }
+
+    private function resolvePaymentMethodId(array $input): ?int
+    {
+        $paymentMethodId = !empty($input['payment_method_id']) ? (int) $input['payment_method_id'] : 0;
+        if ($paymentMethodId > 0) {
+            return $paymentMethodId;
+        }
+
+        $customName = trim((string) ($input['new_payment_method'] ?? ''));
+        if ($customName === '') {
+            return null;
+        }
+
+        return $this->paymentMethodModel->findOrCreate($customName);
+    }
+
+    private function resolvePurchaseSourceId(array $input): ?int
+    {
+        $sourceId = !empty($input['purchase_source_id']) ? (int) $input['purchase_source_id'] : 0;
+        if ($sourceId > 0) {
+            return $sourceId;
+        }
+
+        $customChild = trim((string) ($input['new_purchase_source'] ?? ''));
+        if ($customChild === '') {
+            return null;
+        }
+
+        $parentId = !empty($input['purchase_parent_id']) ? (int) $input['purchase_parent_id'] : 0;
+        if ($parentId <= 0) {
+            $customParent = trim((string) ($input['new_purchase_parent'] ?? ''));
+            if ($customParent !== '') {
+                $parentId = (int) ($this->purchaseSourceModel->findOrCreateParent($customParent) ?? 0);
+            }
+        }
+        if ($parentId <= 0) {
+            $parentId = (int) ($this->purchaseSourceModel->findOrCreateParent('Other') ?? 0);
+        }
+        if ($parentId <= 0) {
+            return null;
+        }
+
+        return $this->purchaseSourceModel->findOrCreateChild($parentId, $customChild);
     }
 }

@@ -7,6 +7,9 @@ $recentTransactions = $recentTransactions ?? [];
 $totalsByType = $totalsByType ?? [];
 $imported = $imported ?? null;
 $failed = $failed ?? null;
+$paymentMethods = $paymentMethods ?? [];
+$purchaseParents = $purchaseParents ?? [];
+$purchaseChildren = $purchaseChildren ?? [];
 
 include __DIR__ . '/../partials/nav.php';
 ?>
@@ -73,6 +76,58 @@ include __DIR__ . '/../partials/nav.php';
             <label>
                 Amount
                 <input type="number" name="amount" step="0.01" min="0" required>
+            </label>
+            <label>
+                Payment method
+                <select name="payment_method_id" id="payment-method-select">
+                    <option value="">Select method</option>
+                    <?php foreach ($paymentMethods as $method): ?>
+                        <option value="<?= (int) $method['id'] ?>"><?= htmlspecialchars($method['name']) ?></option>
+                    <?php endforeach; ?>
+                    <option value="other">Other (add new)</option>
+                </select>
+            </label>
+            <label id="new-payment-method-wrap" style="display: none;">
+                New payment method
+                <input type="text" name="new_payment_method" placeholder="Example: UPI Lite">
+            </label>
+            <label>
+                To whom (Contact)
+                <input type="text" id="transaction-contact-search" placeholder="Type name/mobile/email" autocomplete="off">
+                <input type="hidden" name="contact_id" id="transaction-contact-id">
+            </label>
+            <div class="module-placeholder" id="transaction-contact-results">
+                <small class="muted">Start typing to search contacts.</small>
+            </div>
+            <label>
+                Purchased from category
+                <select name="purchase_parent_id" id="purchase-parent-select">
+                    <option value="">Select group</option>
+                    <?php foreach ($purchaseParents as $parent): ?>
+                        <option value="<?= (int) $parent['id'] ?>"><?= htmlspecialchars($parent['name']) ?></option>
+                    <?php endforeach; ?>
+                    <option value="other">Other group (add new)</option>
+                </select>
+            </label>
+            <label id="new-purchase-parent-wrap" style="display: none;">
+                New purchase group
+                <input type="text" name="new_purchase_parent" placeholder="Example: Temple / Donations">
+            </label>
+            <label>
+                Purchased from
+                <select name="purchase_source_id" id="purchase-source-select">
+                    <option value="">Select source</option>
+                    <?php foreach ($purchaseChildren as $source): ?>
+                        <option value="<?= (int) $source['id'] ?>" data-parent="<?= (int) $source['parent_id'] ?>">
+                            <?= htmlspecialchars($source['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                    <option value="other">Other source (add new)</option>
+                </select>
+            </label>
+            <label id="new-purchase-source-wrap" style="display: none;">
+                New purchase source
+                <input type="text" name="new_purchase_source" placeholder="Example: Local Tea Stall">
             </label>
             <label id="emi-toggle-wrap" style="display: none;">
                 EMI purchase?
@@ -164,7 +219,7 @@ include __DIR__ . '/../partials/nav.php';
         <h2>Import transactions (CSV)</h2>
         <p class="muted">
             Upload CSV with header columns:
-            <code>transaction_date,account_token,transaction_type,amount,category_id,subcategory_id,notes,transfer_to_account_token</code>.
+            <code>transaction_date,account_token,transaction_type,amount,category_id,subcategory_id,payment_method_id,payment_method_name,contact_id,purchase_parent_id,purchase_parent_name,purchase_source_id,purchase_source_name,notes,transfer_to_account_token</code>.
             Use account token format like <code>savings:1</code>, <code>credit_card:3</code>, <code>loan:2</code>.
         </p>
         <p class="muted">
@@ -197,6 +252,9 @@ include __DIR__ . '/../partials/nav.php';
                             <th>Bank</th>
                             <th>Type</th>
                             <th>Amount</th>
+                            <th>Payment</th>
+                            <th>To whom</th>
+                            <th>Purchased from</th>
                             <th>Category</th>
                             <th>Notes</th>
                         </tr>
@@ -208,6 +266,14 @@ include __DIR__ . '/../partials/nav.php';
                                 <td><?= htmlspecialchars(trim(($txn['bank_name'] ?? '-') . ' - ' . ($txn['account_name'] ?? ''))) ?></td>
                                 <td><?= htmlspecialchars(ucfirst($txn['transaction_type'])) ?></td>
                                 <td><?= formatCurrency((float) $txn['amount']) ?></td>
+                                <td><?= htmlspecialchars($txn['payment_method_name'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($txn['contact_name'] ?? '-') ?></td>
+                                <td>
+                                    <?= htmlspecialchars($txn['purchase_source_name'] ?? '-') ?>
+                                    <?php if (!empty($txn['purchase_parent_name'])): ?>
+                                        <small class="muted">-> <?= htmlspecialchars($txn['purchase_parent_name']) ?></small>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?= htmlspecialchars($txn['category_name'] ?? 'Uncategorized') ?>
                                     <?php if (!empty($txn['subcategory_name'])): ?>
@@ -233,11 +299,25 @@ include __DIR__ . '/../partials/nav.php';
             const emiFields = document.getElementById('emi-fields');
             const categorySelect = document.getElementById('category-select');
             const subcategorySelect = document.getElementById('subcategory-select');
+            const paymentMethodSelect = document.getElementById('payment-method-select');
+            const newPaymentMethodWrap = document.getElementById('new-payment-method-wrap');
+            const purchaseParentSelect = document.getElementById('purchase-parent-select');
+            const purchaseSourceSelect = document.getElementById('purchase-source-select');
+            const newPurchaseParentWrap = document.getElementById('new-purchase-parent-wrap');
+            const newPurchaseSourceWrap = document.getElementById('new-purchase-source-wrap');
+            const contactSearchInput = document.getElementById('transaction-contact-search');
+            const contactIdInput = document.getElementById('transaction-contact-id');
+            const contactResultsWrap = document.getElementById('transaction-contact-results');
 
             const storedOptions = Array.from(subcategorySelect.querySelectorAll('option[data-category]')).map(option => ({
                 value: option.value,
                 label: option.innerHTML,
                 category: option.dataset.category,
+            }));
+            const storedPurchaseSources = Array.from(purchaseSourceSelect.querySelectorAll('option[data-parent]')).map(option => ({
+                value: option.value,
+                label: option.innerHTML,
+                parent: option.dataset.parent,
             }));
 
             function toggleTransferFields() {
@@ -275,15 +355,112 @@ include __DIR__ . '/../partials/nav.php';
                 });
             }
 
+            function togglePaymentMethodOther() {
+                newPaymentMethodWrap.style.display = paymentMethodSelect.value === 'other' ? 'flex' : 'none';
+                if (paymentMethodSelect.value === 'other') {
+                    paymentMethodSelect.name = '';
+                    newPaymentMethodWrap.querySelector('input').focus();
+                    return;
+                }
+                paymentMethodSelect.name = 'payment_method_id';
+            }
+
+            function refreshPurchaseSources() {
+                const selectedParent = purchaseParentSelect.value;
+                purchaseSourceSelect.innerHTML = '<option value="">Select source</option>';
+
+                storedPurchaseSources.forEach(item => {
+                    if (!selectedParent || selectedParent === 'other' || item.parent === selectedParent) {
+                        const option = document.createElement('option');
+                        option.value = item.value;
+                        option.innerHTML = item.label;
+                        option.dataset.parent = item.parent;
+                        purchaseSourceSelect.appendChild(option);
+                    }
+                });
+
+                const other = document.createElement('option');
+                other.value = 'other';
+                other.innerHTML = 'Other source (add new)';
+                purchaseSourceSelect.appendChild(other);
+            }
+
+            function togglePurchaseOther() {
+                newPurchaseParentWrap.style.display = purchaseParentSelect.value === 'other' ? 'flex' : 'none';
+                newPurchaseSourceWrap.style.display = purchaseSourceSelect.value === 'other' ? 'flex' : 'none';
+
+                if (purchaseParentSelect.value === 'other') {
+                    purchaseParentSelect.name = '';
+                } else {
+                    purchaseParentSelect.name = 'purchase_parent_id';
+                }
+
+                if (purchaseSourceSelect.value === 'other') {
+                    purchaseSourceSelect.name = '';
+                } else {
+                    purchaseSourceSelect.name = 'purchase_source_id';
+                }
+            }
+
+            function renderContactResults(items) {
+                if (!items.length) {
+                    contactResultsWrap.innerHTML = '<small class="muted">No contacts found.</small>';
+                    return;
+                }
+
+                contactResultsWrap.innerHTML = '';
+                items.forEach(item => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'secondary';
+                    button.style.marginRight = '0.5rem';
+                    button.style.marginBottom = '0.5rem';
+                    button.textContent = item.name + (item.mobile ? ' - ' + item.mobile : '');
+                    button.addEventListener('click', function () {
+                        contactIdInput.value = item.id;
+                        contactSearchInput.value = item.name + (item.mobile ? ' - ' + item.mobile : '');
+                        contactResultsWrap.innerHTML = '<small class="muted">Selected: ' + button.textContent + '</small>';
+                    });
+                    contactResultsWrap.appendChild(button);
+                });
+            }
+
+            async function searchContacts(query) {
+                const response = await fetch('?module=transactions&action=contact_search&q=' + encodeURIComponent(query));
+                if (!response.ok) {
+                    return;
+                }
+                const data = await response.json();
+                renderContactResults(Array.isArray(data) ? data : []);
+            }
+
             typeSelect.addEventListener('change', toggleTransferFields);
             typeSelect.addEventListener('change', toggleEmiFields);
             accountSelect.addEventListener('change', toggleEmiFields);
             emiToggleSelect.addEventListener('change', toggleEmiFields);
             categorySelect.addEventListener('change', refreshSubcategories);
+            paymentMethodSelect.addEventListener('change', togglePaymentMethodOther);
+            purchaseParentSelect.addEventListener('change', function () {
+                refreshPurchaseSources();
+                togglePurchaseOther();
+            });
+            purchaseSourceSelect.addEventListener('change', togglePurchaseOther);
+            contactSearchInput.addEventListener('input', function () {
+                const query = contactSearchInput.value.trim();
+                if (query.length < 2) {
+                    contactIdInput.value = '';
+                    contactResultsWrap.innerHTML = '<small class="muted">Start typing to search contacts.</small>';
+                    return;
+                }
+                searchContacts(query);
+            });
 
             toggleTransferFields();
             toggleEmiFields();
             refreshSubcategories();
+            togglePaymentMethodOther();
+            refreshPurchaseSources();
+            togglePurchaseOther();
         })();
     </script>
 </main>
